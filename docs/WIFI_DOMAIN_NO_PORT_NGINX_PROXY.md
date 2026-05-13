@@ -45,6 +45,12 @@ server {
     listen 80;
     server_name wifi.kisaanu.com;
 
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        default_type text/plain;
+        try_files $uri =404;
+    }
+
     location = / {
         return 302 /wifi.php;
     }
@@ -90,6 +96,13 @@ server {
     }
 }
 NGINX
+```
+
+Create challenge webroot:
+
+```bash
+sudo mkdir -p /var/www/certbot/.well-known/acme-challenge
+echo ok | sudo tee /var/www/certbot/.well-known/acme-challenge/test >/dev/null
 ```
 
 Enable and reload:
@@ -166,7 +179,7 @@ sudo ufw status
 
 5. Test public reachability from outside:
 ```bash
-curl -sSI http://wifi.kisaanu.com/.well-known/acme-challenge/ping | head -n 5
+curl -sSI http://wifi.kisaanu.com/.well-known/acme-challenge/test | head -n 5
 curl -sSI http://wifi.kisaanu.com/wifi.php | head -n 5
 ```
 
@@ -178,6 +191,21 @@ sudo certbot --nginx -d wifi.kisaanu.com --redirect -m admin@kisaanu.com --agree
 If it still fails, inspect:
 ```bash
 sudo tail -n 120 /var/log/letsencrypt/letsencrypt.log
+```
+
+### Deny rule blocks ACME path
+If your config has `location ~ /\.` deny rules, keep ACME allow-rule above it:
+
+```nginx
+location ^~ /.well-known/acme-challenge/ {
+    root /var/www/certbot;
+    try_files $uri =404;
+}
+
+location ~ /\.(?!well-known).* {
+    deny all;
+    return 404;
+}
 ```
 
 ### Nginx syntax failure
