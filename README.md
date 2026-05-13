@@ -91,6 +91,8 @@ docker compose ps
   - [DEPLOY_EC2_UBUNTU24.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/DEPLOY_EC2_UBUNTU24.md)
 - Omada ER605 + EAP225 implementation plan:
   - [docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md)
+- Omada form field values for `wifi.kisaanu.com`:
+  - [docs/OMADA_FIELD_VALUES_WIFI_KISAANU.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/docs/OMADA_FIELD_VALUES_WIFI_KISAANU.md)
 - Protocol/port matrix:
   - [OMADA_EAP225_OUTDOOR.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/OMADA_EAP225_OUTDOOR.md)
 
