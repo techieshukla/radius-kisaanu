@@ -69,7 +69,7 @@ cp .env.example .env
 nano .env
 ```
 
-Set at minimum:
+Set production values in `.env` (do not keep `REPLACE_ME*` placeholders):
 
 ```env
 COMPOSE_PROJECT_NAME=radius_kisaanu
@@ -91,7 +91,7 @@ RADIUS_CLIENT_IP=<OMADA_CONTROLLER_OR_AP_SUBNET>
 OMADA_CONTROLLER_IP=3.111.219.106
 
 NGINX_BIND_IP=0.0.0.0
-NGINX_HTTP_PORT=80
+NGINX_HTTP_PORT=8090
 DALORADIUS_BIND_IP=0.0.0.0
 DALORADIUS_HTTP_PORT=8091
 PHPMYADMIN_BIND_IP=0.0.0.0
@@ -101,8 +101,7 @@ RADIUS_AUTH_PORT=1812
 RADIUS_ACCT_PORT=1813
 ```
 
-If port `80` is occupied, use:
-- `NGINX_HTTP_PORT=8090`
+Use `NGINX_HTTP_PORT=8090` by default when host NGINX is serving `80/443`.
 
 ## 6. Start deployment
 
@@ -129,7 +128,7 @@ curl -sSI http://127.0.0.1:${PHPMYADMIN_HTTP_PORT}/ | head -n 5
 ```
 
 Public/LAN URLs:
-- Portal: `http://3.111.219.106/wifi.php` (or `:<NGINX_HTTP_PORT>`)
+- Portal (container direct): `http://3.111.219.106:8090/wifi.php`
 - daloRADIUS: `http://3.111.219.106:8091/daloradius/app/operators/index.php`
 - phpMyAdmin: `http://3.111.219.106:8092`
 
@@ -141,7 +140,7 @@ In Omada Controller:
 - Acct Port: `1813`
 - Shared Secret: same as `.env` `RADIUS_SHARED_SECRET`
 - Captive Portal URL:
-  - `http://3.111.219.106/wifi.php` (or `http://3.111.219.106:8090/wifi.php` if using 8090)
+  - `http://3.111.219.106:8090/wifi.php` (or your public domain reverse-proxy URL)
   - Include Omada query params (`target`, `clientMac`, `apMac`, `ssidName`, `radioId`)
 
 ## 10. Firewall on EC2 OS (optional if using SG only)
