@@ -211,6 +211,12 @@ curl -sSI https://wifi.kisaanu.com/daloradius/ | head -n 6
 curl -sSI https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
 ```
 
+If certbot fails with `Timeout during connect`, first ensure:
+- AWS Security Group has inbound `80/tcp` open (at least during certificate issuance)
+- `sudo ufw allow 80/tcp`
+- host Nginx is healthy: `sudo nginx -t && sudo systemctl status nginx --no-pager`
+- domain resolves to this instance: `dig +short wifi.kisaanu.com`
+
 ## 11. Firewall on EC2 OS (optional if using SG only)
 
 ```bash

@@ -140,6 +140,46 @@ Admin URLs:
 
 ## 8. Troubleshooting
 
+### Certbot error: Timeout during connect (http-01)
+Run this exact checklist on EC2:
+
+1. Confirm DNS resolves to this host:
+```bash
+dig +short wifi.kisaanu.com
+curl -4s ifconfig.me
+```
+
+2. Ensure host Nginx is bound on public port 80:
+```bash
+sudo ss -ltnp '( sport = :80 )'
+sudo nginx -t
+sudo systemctl status nginx --no-pager
+```
+
+3. Allow inbound `80/tcp` at OS firewall:
+```bash
+sudo ufw allow 80/tcp
+sudo ufw status
+```
+
+4. Ensure AWS Security Group allows `80/tcp` from `0.0.0.0/0` temporarily for issuance.
+
+5. Test public reachability from outside:
+```bash
+curl -sSI http://wifi.kisaanu.com/.well-known/acme-challenge/ping | head -n 5
+curl -sSI http://wifi.kisaanu.com/wifi.php | head -n 5
+```
+
+6. Retry certbot with debug:
+```bash
+sudo certbot --nginx -d wifi.kisaanu.com --redirect -m admin@kisaanu.com --agree-tos -n -v
+```
+
+If it still fails, inspect:
+```bash
+sudo tail -n 120 /var/log/letsencrypt/letsencrypt.log
+```
+
 ### Nginx syntax failure
 Check file with line numbers:
 ```bash
