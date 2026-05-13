@@ -60,27 +60,27 @@ Production-focused captive portal backend for public Wi-Fi with:
 
 ## Quick Start (Local)
 
-1. Configure env:
+1. Configure local env:
 ```bash
-cp .env.example .env
+nano .env.local
 ```
 
 2. Build and start:
 ```bash
-docker compose up -d --build
-docker compose ps
+docker compose --env-file .env.local up -d --build
+docker compose --env-file .env.local ps
 ```
 
 3. Optional DB updates for existing volume:
 ```bash
-./scripts/migrate-portal-registration-table.sh
-./scripts/setup-daloradius-db.sh
+ENV_FILE=.env.local ./scripts/migrate-portal-registration-table.sh
+ENV_FILE=.env.local ./scripts/setup-daloradius-db.sh
 ```
 
 4. Health checks:
 ```bash
-./scripts/check-captive-stack.sh
-./scripts/omada-cutover-precheck.sh
+ENV_FILE=.env.local ./scripts/check-captive-stack.sh
+ENV_FILE=.env.local ./scripts/omada-cutover-precheck.sh
 ```
 
 ## One-Command Server Deploy
@@ -101,6 +101,10 @@ What it does:
 - runs DB migration/bootstrap tasks
 - executes post-deploy health checks
 
+Environment selection:
+- Production default: `.env`
+- Local: `ENV_FILE=.env.local ./run.sh`
+
 ## Full Deploy Guides
 
 - General Wi-Fi/LAN deploy:
@@ -118,9 +122,12 @@ What it does:
 
 ## Omada Mapping (Paste Values)
 
-Use in Omada Controller:
+Use in Omada Controller (production):
 - External Portal URL:
   - `https://wifi.kisaanu.com/wifi.php`
+- Same domain admin URLs:
+  - daloRADIUS: `https://wifi.kisaanu.com/daloradius/`
+  - phpMyAdmin: `https://wifi.kisaanu.com/phpmyadmin/`
 - RADIUS Server:
   - Host: `3.111.219.106`
   - Auth: `1812`
@@ -153,7 +160,7 @@ php portal/tests/run.php
 
 Portal endpoint quick check:
 ```bash
-curl -sSI "http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/wifi.php" | head -n 5
+ENV_FILE=.env.local ./scripts/check-captive-stack.sh
 ```
 
 RADIUS local check:

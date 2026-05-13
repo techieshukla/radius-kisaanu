@@ -5,7 +5,8 @@ Use these exact values in Omada Controller for EAP225 Outdoor captive portal and
 ## Assumptions
 - Portal host: `wifi.kisaanu.com`
 - Server Elastic IP: `3.111.219.106`
-- Current portal port: `8090`
+- External Nginx serves `wifi.kisaanu.com` on `80/443`
+- Internal Docker services remain on `8090/8091/8092`
 - RADIUS is exposed from same host
 
 ## 1. RADIUS Settings (Omada)
@@ -22,11 +23,8 @@ Notes:
 
 ## 2. External Portal Settings (Omada)
 - Portal Type: `External Portal Server`
-- Portal URL (current): `http://wifi.kisaanu.com:8090/wifi.php`
+- Portal URL (final): `https://wifi.kisaanu.com/wifi.php`
 - Redirect/Landing URL after login: `https://kisaanu.com`
-
-Future TLS target:
-- `https://wifi.kisaanu.com/wifi.php` (after 443 + certificate is enabled)
 
 ## 3. Query Parameters
 Ensure Omada preserves/passes portal query parameters. This backend supports:
@@ -42,28 +40,33 @@ For `wifi.kisaanu.com`:
 - DNS A record -> `3.111.219.106`
 
 Allow inbound to EC2:
-- `8090/tcp` (or `80/tcp` once moved)
+- `80/tcp`
+- `443/tcp`
 - `1812/udp`
 - `1813/udp`
-- `8091/tcp` admin-only
-- `8092/tcp` admin-only
+- `8091/tcp` and `8092/tcp` can be closed publicly when proxied internally via host nginx
 
 ## 5. Validation Commands
 Run on server:
 
 ```bash
 curl -sSI http://127.0.0.1:8090/wifi.php | head -n 5
+curl -sSI http://127.0.0.1:8091/daloradius/app/operators/index.php | head -n 6
+curl -sSI http://127.0.0.1:8092/ | head -n 5
 ./scripts/omada-cutover-precheck.sh
 ```
 
 Public check:
 
 ```bash
-curl -sSI http://wifi.kisaanu.com:8090/wifi.php | head -n 5
+curl -sSI https://wifi.kisaanu.com/wifi.php | head -n 5
+curl -sSI https://wifi.kisaanu.com/daloradius/ | head -n 6
+curl -sSI https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
 ```
 
-## 6. Recommended Production Move
-After first rollout is stable:
-1. Put portal behind HTTPS (`443`)
-2. Switch Omada portal URL to `https://wifi.kisaanu.com/wifi.php`
-3. Keep `8091/8092` restricted to admin CIDR only
+## 6. Admin URLs (same domain)
+- daloRADIUS: `https://wifi.kisaanu.com/daloradius/`
+- phpMyAdmin: `https://wifi.kisaanu.com/phpmyadmin/`
+
+Recommended:
+- protect both with IP allowlist and/or basic auth in host nginx.
