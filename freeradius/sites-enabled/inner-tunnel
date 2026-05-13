@@ -1,0 +1,48 @@
+server inner-tunnel {
+  listen {
+    ipaddr = 127.0.0.1
+    port = 18120
+    type = auth
+  }
+
+  authorize {
+    chap
+    mschap
+    suffix
+    update control {
+      Proxy-To-Realm := LOCAL
+    }
+    eap {
+      ok = return
+    }
+    files
+    sql
+    expiration
+    logintime
+    pap
+  }
+
+  authenticate {
+    Auth-Type PAP {
+      pap
+    }
+    Auth-Type CHAP {
+      chap
+    }
+    Auth-Type MS-CHAP {
+      mschap
+    }
+    eap
+  }
+
+  session {
+    sql
+  }
+
+  post-auth {
+    sql
+    Post-Auth-Type REJECT {
+      sql
+    }
+  }
+}

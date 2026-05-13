@@ -1,0 +1,11 @@
+client __RADIUS_CLIENT_NAME__ {
+  ipaddr = __RADIUS_CLIENT_IP__
+  secret = __RADIUS_SHARED_SECRET__
+  shortname = local
+}
+
+client localhost {
+  ipaddr = 127.0.0.1
+  secret = __RADIUS_SHARED_SECRET__
+  shortname = localhost
+}

@@ -1,0 +1,5 @@
+# Placeholder for Phase 4 quota logic.
+# Strategy:
+# - Resolve user's group plan from radusergroup -> plan_profiles
+# - Sum today's acctsessiontime from radacct
+# - Reject auth if used seconds >= seconds_per_day

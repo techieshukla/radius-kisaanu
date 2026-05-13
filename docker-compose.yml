@@ -1,0 +1,132 @@
+services:
+  mysql:
+    build:
+      context: .
+      dockerfile: mysql/Dockerfile
+    image: radius-kisaanu/mysql:local
+    container_name: radius-mysql
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-change_root_password}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-radius}
+      MYSQL_USER: ${MYSQL_USER:-radius}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-change_radius_password}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-change_root_password}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - radius_net
+
+  freeradius:
+    build:
+      context: .
+      dockerfile: freeradius/Dockerfile
+    image: radius-kisaanu/freeradius:local
+    container_name: radius-freeradius
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      RADIUS_DB_NAME: ${RADIUS_DB_NAME:-radius}
+      RADIUS_DB_USER: ${RADIUS_DB_USER:-radius}
+      RADIUS_DB_PASS: ${RADIUS_DB_PASS:-change_radius_password}
+      RADIUS_DB_HOST: ${RADIUS_DB_HOST:-mysql}
+      RADIUS_SHARED_SECRET: ${RADIUS_SHARED_SECRET:-change_shared_secret}
+      RADIUS_CLIENT_NAME: ${RADIUS_CLIENT_NAME:-local-nas}
+      RADIUS_CLIENT_IP: ${RADIUS_CLIENT_IP:-172.20.0.0/16}
+    ports:
+      - "${RADIUS_AUTH_PORT:-1812}:1812/udp"
+      - "${RADIUS_ACCT_PORT:-1813}:1813/udp"
+    entrypoint: ["/bin/sh", "/usr/local/bin/freeradius-entrypoint.sh"]
+    networks:
+      - radius_net
+
+  php:
+    build:
+      context: .
+      dockerfile: php/Dockerfile
+    image: radius-kisaanu/php:local
+    container_name: radius-php
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      DB_HOST: ${RADIUS_DB_HOST:-mysql}
+      DB_PORT: 3306
+      DB_NAME: ${RADIUS_DB_NAME:-radius}
+      DB_USER: ${RADIUS_DB_USER:-radius}
+      DB_PASS: ${RADIUS_DB_PASS:-change_radius_password}
+    networks:
+      - radius_net
+
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    image: radius-kisaanu/nginx:local
+    container_name: radius-nginx
+    restart: unless-stopped
+    depends_on:
+      - php
+    ports:
+      - "${NGINX_BIND_IP:-0.0.0.0}:${NGINX_HTTP_PORT:-80}:80"
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+    networks:
+      - radius_net
+
+  daloradius:
+    build:
+      context: .
+      dockerfile: daloradius/Dockerfile
+    image: radius-kisaanu/daloradius:local
+    container_name: radius-daloradius
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      TZ: ${TZ:-Asia/Kolkata}
+      DB_HOST: ${RADIUS_DB_HOST:-mysql}
+      DB_PORT: 3306
+      DB_NAME: ${RADIUS_DB_NAME:-radius}
+      DB_USER: ${RADIUS_DB_USER:-radius}
+      DB_PASS: ${RADIUS_DB_PASS:-change_radius_password}
+    ports:
+      - "${DALORADIUS_HTTP_PORT:-8091}:80"
+    networks:
+      - radius_net
+
+  phpmyadmin:
+    build:
+      context: .
+      dockerfile: phpmyadmin/Dockerfile
+    image: radius-kisaanu/phpmyadmin:local
+    container_name: radius-phpmyadmin
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      PMA_HOST: ${RADIUS_DB_HOST:-mysql}
+      PMA_PORT: 3306
+      PMA_USER: ${RADIUS_DB_USER:-radius}
+      PMA_PASSWORD: ${RADIUS_DB_PASS:-change_radius_password}
+      UPLOAD_LIMIT: 64M
+    ports:
+      - "${PHPMYADMIN_HTTP_PORT:-8092}:80"
+    networks:
+      - radius_net
+
+volumes:
+  mysql_data:
+
+networks:
+  radius_net:
+    driver: bridge

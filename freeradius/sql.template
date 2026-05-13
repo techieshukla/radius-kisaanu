@@ -1,0 +1,28 @@
+sql {
+  driver = "rlm_sql_mysql"
+  dialect = "mysql"
+
+  server = "__RADIUS_DB_HOST__"
+  port = 3306
+  login = "__RADIUS_DB_USER__"
+  password = "__RADIUS_DB_PASS__"
+  radius_db = "__RADIUS_DB_NAME__"
+
+  read_clients = no
+  delete_stale_sessions = yes
+
+  pool {
+    start = 2
+    min = 1
+    max = 10
+    spare = 3
+    uses = 0
+    retry_delay = 30
+    lifetime = 0
+    idle_timeout = 60
+  }
+
+  client_table = "nas"
+  group_attribute = "SQL-Group"
+  $INCLUDE ${modconfdir}/sql/main/${dialect}/queries.conf
+}
