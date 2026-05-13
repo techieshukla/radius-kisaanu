@@ -7,8 +7,7 @@ ENV_FILE="${ENV_FILE:-.env}"
 export ENV_FILE
 COMPOSE=(docker compose --env-file "$ENV_FILE")
 CURRENT_PHASE="init"
-ENV_STASHED=0
-ENV_STASH_REF=""
+ENV_BACKUP_DIR=""
 
 log() { printf "\n[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 die() { printf "\nERROR: %s\n" "$*" >&2; exit 1; }
@@ -19,16 +18,16 @@ on_error() {
 trap on_error ERR
 
 restore_env_stash() {
-  if [[ "$ENV_STASHED" == "1" && -n "$ENV_STASH_REF" ]]; then
-    log "Restoring local .env changes from stash (${ENV_STASH_REF})"
-    if git stash pop --index "$ENV_STASH_REF"; then
-      log "PASS: local .env changes restored"
-    else
-      echo "WARN: Could not auto-restore .env stash cleanly." >&2
-      echo "WARN: Resolve manually with: git stash list / git stash show -p ${ENV_STASH_REF}" >&2
+  if [[ -n "$ENV_BACKUP_DIR" && -d "$ENV_BACKUP_DIR" ]]; then
+    if [[ -f "${ENV_BACKUP_DIR}/.env" ]]; then
+      cp "${ENV_BACKUP_DIR}/.env" .env
     fi
-    ENV_STASHED=0
-    ENV_STASH_REF=""
+    if [[ -f "${ENV_BACKUP_DIR}/.env.local" ]]; then
+      cp "${ENV_BACKUP_DIR}/.env.local" .env.local
+    fi
+    rm -rf "$ENV_BACKUP_DIR" || true
+    ENV_BACKUP_DIR=""
+    log "PASS: local env files restored from backup"
   fi
 }
 trap restore_env_stash EXIT
@@ -38,28 +37,19 @@ require_cmd() {
 }
 
 stash_local_env_changes_if_needed() {
-  local tracked_env_files=()
-
-  # Stash only tracked env files so git pull can proceed while preserving server-local secrets.
-  if git ls-files --error-unmatch .env >/dev/null 2>&1; then
-    tracked_env_files+=(".env")
+  local changed=0
+  if [[ -f .env ]] && ! git diff --quiet -- .env 2>/dev/null; then
+    changed=1
   fi
-  if git ls-files --error-unmatch .env.local >/dev/null 2>&1; then
-    tracked_env_files+=(".env.local")
+  if [[ -f .env.local ]] && ! git diff --quiet -- .env.local 2>/dev/null; then
+    changed=1
   fi
 
-  if [[ "${#tracked_env_files[@]}" -eq 0 ]]; then
-    return 0
-  fi
-
-  if ! git diff --quiet -- "${tracked_env_files[@]}" 2>/dev/null; then
-    log "Local env changes detected. Stashing tracked env files before pull."
-    git stash push -m "run.sh:auto-env-stash:$(date +%s)" -- "${tracked_env_files[@]}" >/dev/null || true
-    ENV_STASH_REF="$(git stash list | head -n 1 | cut -d: -f1)"
-    if [[ -n "$ENV_STASH_REF" ]]; then
-      ENV_STASHED=1
-      log "PASS: env files stashed as ${ENV_STASH_REF}"
-    fi
+  if [[ "$changed" == "1" ]]; then
+    ENV_BACKUP_DIR="$(mktemp -d /tmp/radius-env-backup.XXXXXX)"
+    [[ -f .env ]] && cp .env "${ENV_BACKUP_DIR}/.env"
+    [[ -f .env.local ]] && cp .env.local "${ENV_BACKUP_DIR}/.env.local"
+    log "Local env changes detected. Backed up env files to ${ENV_BACKUP_DIR} before pull."
   fi
 }
 
