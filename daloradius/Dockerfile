@@ -3,6 +3,14 @@ FROM php:8.3-apache
 RUN echo 'ServerName localhost' > /etc/apache2/conf-available/servername.conf \
     && a2enconf servername
 
+RUN printf '%s\n' \
+    '<Directory "/var/www/html">' \
+    '  <FilesMatch "^\\.">' \
+    '    Require all denied' \
+    '  </FilesMatch>' \
+    '</Directory>' > /etc/apache2/conf-available/hide-dotfiles.conf \
+    && a2enconf hide-dotfiles
+
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git unzip libpq-dev libzip-dev \
     && docker-php-ext-install mysqli pdo pdo_mysql \
