@@ -143,6 +143,14 @@ retry_cmd() {
   done
 }
 
+compose_up_with_build_fallback() {
+  if "${COMPOSE[@]}" up -d --build "$@"; then
+    return 0
+  fi
+  log "WARN: build failed for [$*]. Retrying with cached/local images (no build)."
+  "${COMPOSE[@]}" up -d "$@"
+}
+
 prepull_base_images() {
   local images=(
     "php:8.3-fpm-alpine"
@@ -298,13 +306,13 @@ log "PASS: docker baseline reset complete"
 
 CURRENT_PHASE="deploy.mysql"
 log "Phase deploy.mysql: mysql"
-"${COMPOSE[@]}" up -d --build mysql
+compose_up_with_build_fallback mysql
 wait_mysql_healthy || die "MySQL did not become healthy."
 log "PASS: mysql healthy"
 
 CURRENT_PHASE="deploy.portal"
 log "Phase deploy.portal: php and nginx"
-"${COMPOSE[@]}" up -d --build php nginx
+compose_up_with_build_fallback php nginx
 log "PASS: php and nginx deployed"
 
 CURRENT_PHASE="deploy.radius"
@@ -316,7 +324,7 @@ else
   log "Precheck: freeradius container not created yet, proceeding with first start"
 fi
 
-"${COMPOSE[@]}" up -d --build freeradius
+compose_up_with_build_fallback freeradius
 "${COMPOSE[@]}" restart freeradius
 sleep 2
 log "Postcheck: freeradius status after restart"
@@ -325,7 +333,7 @@ log "PASS: freeradius deployed and restart checks passed"
 
 CURRENT_PHASE="deploy.admin"
 log "Phase deploy.admin: daloradius and phpmyadmin"
-"${COMPOSE[@]}" up -d --build daloradius phpmyadmin
+compose_up_with_build_fallback daloradius phpmyadmin
 log "PASS: admin UIs deployed"
 
 CURRENT_PHASE="postdeploy.dbtasks"
