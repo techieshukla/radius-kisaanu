@@ -237,7 +237,39 @@ ALTER USER '${RADIUS_DB_USER}'@'%' IDENTIFIED BY '${RADIUS_DB_PASS}';
 GRANT ALL PRIVILEGES ON \`${RADIUS_DB_NAME}\`.* TO '${RADIUS_DB_USER}'@'%';
 FLUSH PRIVILEGES;
 "
-  "${COMPOSE[@]}" exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" -e "$sql"
+  mysql_exec_as_root "$sql"
+}
+
+mysql_exec_as_root() {
+  local sql="$1"
+  local pass_candidates=("${MYSQL_ROOT_PASSWORD:-}" "${MYSQL_ROOT_PASSWORD_PREVIOUS:-}" "${MYSQL_ROOT_PASSWORD_LEGACY:-}")
+  local p
+
+  for p in "${pass_candidates[@]}"; do
+    [[ -z "${p:-}" ]] && continue
+    if "${COMPOSE[@]}" exec -T mysql mysql -uroot "-p${p}" -e "SELECT 1;" >/dev/null 2>&1; then
+      "${COMPOSE[@]}" exec -T mysql mysql -uroot "-p${p}" -e "$sql"
+      return 0
+    fi
+  done
+
+  # Some container setups may allow socket/root auth without password.
+  if "${COMPOSE[@]}" exec -T mysql mysql -uroot -e "SELECT 1;" >/dev/null 2>&1; then
+    "${COMPOSE[@]}" exec -T mysql mysql -uroot -e "$sql"
+    return 0
+  fi
+
+  return 1
+}
+
+reset_mysql_volume_and_reseed() {
+  local volume_name="${MYSQL_VOLUME_NAME:-radius_kisaanu_mysql_data}"
+  log "WARN: resetting MySQL volume ${volume_name} due unrecoverable root auth mismatch"
+  "${COMPOSE[@]}" down --remove-orphans mysql || true
+  docker volume rm -f "${volume_name}" || true
+  compose_up_with_build_fallback mysql
+  wait_mysql_healthy || return 1
+  mysql_exec_as_root "SELECT 1;" >/dev/null
 }
 
 check_radius_runtime() {
@@ -366,7 +398,15 @@ log "Phase deploy.mysql: mysql"
 compose_up_with_build_fallback mysql
 wait_mysql_healthy || die "MySQL did not become healthy."
 log "Phase deploy.mysql.sync-user: ensure radius DB user and grants"
-sync_mysql_radius_user || die "Failed to sync MySQL radius user/password/grants."
+if ! sync_mysql_radius_user; then
+  if [[ "${ALLOW_MYSQL_VOLUME_RESET_ON_AUTH_FAILURE:-0}" == "1" ]]; then
+    log "WARN: root auth failed. ALLOW_MYSQL_VOLUME_RESET_ON_AUTH_FAILURE=1, attempting MySQL volume reset."
+    reset_mysql_volume_and_reseed || die "MySQL reset/reseed failed after root auth mismatch."
+    sync_mysql_radius_user || die "Failed to sync MySQL radius user/password/grants after reset."
+  else
+    die "Failed to sync MySQL radius user/password/grants. Set MYSQL_ROOT_PASSWORD_PREVIOUS or enable ALLOW_MYSQL_VOLUME_RESET_ON_AUTH_FAILURE=1."
+  fi
+fi
 log "PASS: mysql healthy"
 
 CURRENT_PHASE="deploy.portal"

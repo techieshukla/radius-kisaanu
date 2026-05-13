@@ -163,6 +163,10 @@ RADIUS/DB:
 - `RADIUS_SHARED_SECRET`
 - `RADIUS_CLIENT_NAME`, `RADIUS_CLIENT_IP`
 - `RADIUS_DB_HOST`, `RADIUS_DB_NAME`, `RADIUS_DB_USER`, `RADIUS_DB_PASS`
+- Root recovery helpers for persisted MySQL:
+  - `MYSQL_ROOT_PASSWORD_PREVIOUS` (optional fallback tried by `run.sh`)
+  - `MYSQL_ROOT_PASSWORD_LEGACY` (second fallback)
+  - `ALLOW_MYSQL_VOLUME_RESET_ON_AUTH_FAILURE=1` (optional destructive reset of only MySQL volume if root auth is unrecoverable)
 
 Portal/infra:
 - `OMADA_CONTROLLER_IP`
