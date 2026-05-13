@@ -45,6 +45,23 @@ server {
     listen 80;
     server_name wifi.kisaanu.com;
 
+    location = / {
+        return 302 /wifi.php;
+    }
+
+    location = /dalo {
+        return 302 /daloradius/;
+    }
+
+    location = /phpmyadmin {
+        return 302 /phpmyadmin/;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+        return 404;
+    }
+
     location / {
         proxy_pass http://127.0.0.1:8090;
         proxy_http_version 1.1;
@@ -103,6 +120,7 @@ sudo certbot --nginx -d wifi.kisaanu.com --redirect -m admin@kisaanu.com --agree
 ```bash
 curl -sSI http://wifi.kisaanu.com/wifi.php | head -n 5
 curl -sSI https://wifi.kisaanu.com/wifi.php | head -n 5
+curl -sSI https://wifi.kisaanu.com/ | head -n 5
 curl -sSI https://wifi.kisaanu.com/daloradius/ | head -n 6
 curl -sSI https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
 ```

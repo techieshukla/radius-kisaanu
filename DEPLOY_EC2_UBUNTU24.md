@@ -143,7 +143,75 @@ In Omada Controller:
   - `http://3.111.219.106:8090/wifi.php` (or your public domain reverse-proxy URL)
   - Include Omada query params (`target`, `clientMac`, `apMac`, `ssidName`, `radioId`)
 
-## 10. Firewall on EC2 OS (optional if using SG only)
+## 10. Host Nginx reverse proxy (no public 8090)
+
+If `8090` is blocked externally (recommended), expose everything through host Nginx on `80/443`:
+
+```bash
+sudo apt-get update
+sudo apt-get install -y nginx certbot python3-certbot-nginx
+
+sudo tee /etc/nginx/sites-available/wifi.kisaanu.com >/dev/null <<'NGINX'
+server {
+    listen 80;
+    server_name wifi.kisaanu.com;
+
+    location = / { return 302 /wifi.php; }
+    location = /dalo { return 302 /daloradius/; }
+    location = /phpmyadmin { return 302 /phpmyadmin/; }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+        return 404;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /daloradius/ {
+        proxy_pass http://127.0.0.1:8091/daloradius/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /phpmyadmin/ {
+        proxy_pass http://127.0.0.1:8092/;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX
+
+sudo ln -sf /etc/nginx/sites-available/wifi.kisaanu.com /etc/nginx/sites-enabled/wifi.kisaanu.com
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl reload nginx
+
+sudo certbot --nginx -d wifi.kisaanu.com --redirect -m admin@kisaanu.com --agree-tos -n
+```
+
+Validate:
+
+```bash
+curl -sSI http://wifi.kisaanu.com/ | head -n 5
+curl -sSI https://wifi.kisaanu.com/wifi.php | head -n 5
+curl -sSI https://wifi.kisaanu.com/daloradius/ | head -n 6
+curl -sSI https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
+```
+
+## 11. Firewall on EC2 OS (optional if using SG only)
 
 ```bash
 sudo ufw allow OpenSSH
@@ -156,7 +224,7 @@ sudo ufw --force enable
 sudo ufw status
 ```
 
-## 11. Update deployment (future)
+## 12. Update deployment (future)
 
 ```bash
 cd ~/radius-kisaanu
@@ -165,7 +233,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-## 12. Logs and troubleshooting
+## 13. Logs and troubleshooting
 
 ```bash
 docker compose logs -f nginx

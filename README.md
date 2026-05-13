@@ -134,6 +134,8 @@ Environment selection:
 Use in Omada Controller (production):
 - External Portal URL:
   - `https://wifi.kisaanu.com/wifi.php`
+- Default landing route:
+  - `https://wifi.kisaanu.com/` (redirects to `/wifi.php`)
 - Same domain admin URLs:
   - daloRADIUS: `https://wifi.kisaanu.com/daloradius/`
   - phpMyAdmin: `https://wifi.kisaanu.com/phpmyadmin/`
