@@ -230,18 +230,26 @@ wait_mysql_healthy() {
 
 check_radius_runtime() {
   local psout
-  local auth_bind
-  local acct_bind
+  local retries="${RADIUS_READY_RETRIES:-25}"
+  local delay="${RADIUS_READY_DELAY_SEC:-2}"
+  local i
 
-  psout="$("${COMPOSE[@]}" ps freeradius)"
-  echo "$psout"
-  echo "$psout" | grep -q "Up" || die "freeradius is not running."
+  for ((i=1; i<=retries; i++)); do
+    psout="$("${COMPOSE[@]}" ps freeradius)"
+    echo "$psout"
+    if echo "$psout" | grep -q "Up" && is_udp_port_listening "${RADIUS_AUTH_PORT}" && is_udp_port_listening "${RADIUS_ACCT_PORT}"; then
+      return 0
+    fi
+    log "INFO: freeradius runtime check retry (${i}/${retries})..."
+    sleep "$delay"
+  done
 
-  auth_bind="$(ss -lunp "( sport = :${RADIUS_AUTH_PORT} )" 2>/dev/null | tail -n +2 || true)"
-  acct_bind="$(ss -lunp "( sport = :${RADIUS_ACCT_PORT} )" 2>/dev/null | tail -n +2 || true)"
+  die "freeradius is not stable or UDP ports ${RADIUS_AUTH_PORT}/${RADIUS_ACCT_PORT} are not bound."
+}
 
-  [[ -n "$auth_bind" ]] || die "freeradius auth UDP port ${RADIUS_AUTH_PORT} is not bound."
-  [[ -n "$acct_bind" ]] || die "freeradius acct UDP port ${RADIUS_ACCT_PORT} is not bound."
+is_udp_port_listening() {
+  local port="$1"
+  ss -lun 2>/dev/null | awk '{print $5}' | grep -Eq "(^|[:\\]])${port}$"
 }
 
 wait_radius_ready() {
@@ -249,15 +257,11 @@ wait_radius_ready() {
   local delay="${RADIUS_READY_DELAY_SEC:-2}"
   local i
   local psout
-  local auth_bind
-  local acct_bind
 
   for ((i=1; i<=retries; i++)); do
     psout="$("${COMPOSE[@]}" ps freeradius)"
-    auth_bind="$(ss -lunp "( sport = :${RADIUS_AUTH_PORT} )" 2>/dev/null | tail -n +2 || true)"
-    acct_bind="$(ss -lunp "( sport = :${RADIUS_ACCT_PORT} )" 2>/dev/null | tail -n +2 || true)"
 
-    if echo "$psout" | grep -q "Up" && [[ -n "$auth_bind" ]] && [[ -n "$acct_bind" ]]; then
+    if echo "$psout" | grep -q "Up" && is_udp_port_listening "${RADIUS_AUTH_PORT}" && is_udp_port_listening "${RADIUS_ACCT_PORT}"; then
       return 0
     fi
     log "INFO: waiting freeradius readiness (${i}/${retries})..."
