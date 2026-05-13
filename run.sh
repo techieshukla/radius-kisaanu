@@ -36,6 +36,34 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
 }
 
+have_cmd() {
+  command -v "$1" >/dev/null 2>&1
+}
+
+listening_port_output() {
+  local proto="$1"
+  local port="$2"
+  if have_cmd ss; then
+    if [[ "$proto" == "tcp" ]]; then
+      ss -ltnp "( sport = :${port} )" 2>/dev/null || true
+    else
+      ss -lunp "( sport = :${port} )" 2>/dev/null || true
+    fi
+    return 0
+  fi
+
+  if have_cmd lsof; then
+    if [[ "$proto" == "tcp" ]]; then
+      lsof -nP -iTCP:"${port}" -sTCP:LISTEN 2>/dev/null || true
+    else
+      lsof -nP -iUDP:"${port}" 2>/dev/null || true
+    fi
+    return 0
+  fi
+
+  return 1
+}
+
 stash_local_env_changes_if_needed() {
   local changed=0
   if [[ -f .env ]] && ! git diff --quiet -- .env 2>/dev/null; then
@@ -70,12 +98,12 @@ check_port_conflicts() {
         log "INFO: Skipping conflict check for allowed TCP port ${p}"
         continue
       fi
-      out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
+      out="$(listening_port_output tcp "${p}" | tail -n +2 || true)"
       if [[ -n "$out" ]]; then
         if grep -q "docker-proxy" <<<"$out"; then
           continue
         fi
-        inspect_out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null || true)"
+        inspect_out="$(listening_port_output tcp "${p}" || true)"
         if grep -q "users:(" <<<"$inspect_out"; then
           printf "\nERROR: TCP port %s is already in use by a confirmed non-docker process.\n%s\n" "$p" "$inspect_out" >&2
           die "Resolve conflict (or change port in ${ENV_FILE}) before deploy."
@@ -93,12 +121,12 @@ check_port_conflicts() {
         log "INFO: Skipping conflict check for allowed UDP port ${p}"
         continue
       fi
-      out="$(ss -lunp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
+      out="$(listening_port_output udp "${p}" | tail -n +2 || true)"
       if [[ -n "$out" ]]; then
         if grep -q "docker-proxy" <<<"$out"; then
           continue
         fi
-        inspect_out="$(ss -lunp "( sport = :${p} )" 2>/dev/null || true)"
+        inspect_out="$(listening_port_output udp "${p}" || true)"
         if grep -q "users:(" <<<"$inspect_out"; then
           printf "\nERROR: UDP port %s is already in use by a confirmed non-docker process.\n%s\n" "$p" "$inspect_out" >&2
           die "Resolve conflict (or change RADIUS port in ${ENV_FILE}) before deploy."
@@ -120,13 +148,11 @@ kill_non_docker_port_owners() {
     ports+=("${RADIUS_AUTH_PORT}" "${RADIUS_ACCT_PORT}")
   fi
   local p
-  local pids
   local pid
   local comm
 
   for p in "${ports[@]}"; do
-    mapfile -t pids < <(ss -ltnup "( sport = :${p} )" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)
-    for pid in "${pids[@]:-}"; do
+    while IFS= read -r pid; do
       [[ -z "${pid:-}" ]] && continue
       comm="$(ps -p "$pid" -o comm= 2>/dev/null || true)"
       if [[ -z "$comm" ]]; then
@@ -137,15 +163,14 @@ kill_non_docker_port_owners() {
       fi
       log "Killing non-docker process on port ${p}: pid=${pid} comm=${comm}"
       kill -TERM "$pid" 2>/dev/null || true
-    done
+    done < <(listening_port_output udp "${p}" | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)
   done
 
   sleep 2
 
   # Hard-kill survivors on required ports.
   for p in "${ports[@]}"; do
-    mapfile -t pids < <(ss -ltnup "( sport = :${p} )" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)
-    for pid in "${pids[@]:-}"; do
+    while IFS= read -r pid; do
       [[ -z "${pid:-}" ]] && continue
       comm="$(ps -p "$pid" -o comm= 2>/dev/null || true)"
       if [[ -z "$comm" ]]; then
@@ -156,7 +181,7 @@ kill_non_docker_port_owners() {
       fi
       log "Force killing stubborn process on port ${p}: pid=${pid} comm=${comm}"
       kill -KILL "$pid" 2>/dev/null || true
-    done
+    done < <(listening_port_output udp "${p}" | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)
   done
 }
 
@@ -337,7 +362,9 @@ require_cmd git
 require_cmd docker
 require_cmd php
 require_cmd curl
-require_cmd ss
+if ! have_cmd ss && ! have_cmd lsof; then
+  die "Missing required command: ss or lsof"
+fi
 
 docker info >/dev/null 2>&1 || die "Docker daemon is not reachable."
 docker compose version >/dev/null 2>&1 || die "Docker Compose plugin is not available."
@@ -360,12 +387,10 @@ restore_env_stash
 if [[ "${CLEAN_BRANCHES:-1}" == "1" ]]; then
   CURRENT_PHASE="git.cleanup"
   log "Phase git.cleanup: cleaning merged local branches (excluding main/master)"
-  mapfile -t merged_branches < <(git for-each-ref refs/heads --format='%(refname:short)' | grep -Ev '^(main|master)$' || true)
-  if [[ "${#merged_branches[@]}" -gt 0 ]]; then
-    for b in "${merged_branches[@]}"; do
-      git branch --merged main | grep -q " $b$" && git branch -d "$b" || true
-    done
-  fi
+  while IFS= read -r b; do
+    [[ -z "${b:-}" ]] && continue
+    git branch --merged main | grep -q " $b$" && git branch -d "$b" || true
+  done <<<"$(git for-each-ref refs/heads --format='%(refname:short)' | grep -Ev '^(main|master)$' || true)"
 fi
 
 CURRENT_PHASE="tests.lint"
