@@ -41,6 +41,10 @@ Change these credentials before production.
   - [DEPLOY.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/DEPLOY.md)
 - Ubuntu 24.04 EC2 full-command deployment:
   - [DEPLOY_EC2_UBUNTU24.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/DEPLOY_EC2_UBUNTU24.md)
+- ER605 + EAP225 step-by-step execution plan (1-8):
+  - [docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md)
+- Optional isolated Omada Controller compose:
+  - `omada-controller/docker-compose.yml` with `omada-controller/.env.example`
 
 ## Portal validation checks
 - Success (local auth + quota):
@@ -63,6 +67,14 @@ Change these credentials before production.
 - Structured JSON logs are written by backend service layer.
 - Default path:
   - `/tmp/portal.log` (container fallback)
+
+## Operations scripts
+- Pre-cutover validation:
+  - `./scripts/omada-cutover-precheck.sh`
+- Captive stack health check:
+  - `./scripts/check-captive-stack.sh`
+- Restrict admin ports (`8091/8092`) to admin CIDR via UFW:
+  - `./scripts/secure-admin-ports-ufw.sh <admin-cidr>`
 
 ## GUI management
 - daloRADIUS (RADIUS users/plans/accounting):
