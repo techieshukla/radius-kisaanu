@@ -112,6 +112,7 @@ Environment selection:
 - Force docker to own configured ports by killing non-docker listeners before deploy:
   - default enabled: `FORCE_DOCKER_PORT_OWNERSHIP=1`
   - disable if needed: `FORCE_DOCKER_PORT_OWNERSHIP=0 ./run.sh`
+- `run.sh` auto-stashes local tracked `.env`/`.env.local` changes before `git pull` and restores them after pull.
 
 ## Full Deploy Guides
 

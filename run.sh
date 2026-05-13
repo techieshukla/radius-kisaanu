@@ -7,6 +7,8 @@ ENV_FILE="${ENV_FILE:-.env}"
 export ENV_FILE
 COMPOSE=(docker compose --env-file "$ENV_FILE")
 CURRENT_PHASE="init"
+ENV_STASHED=0
+ENV_STASH_REF=""
 
 log() { printf "\n[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 die() { printf "\nERROR: %s\n" "$*" >&2; exit 1; }
@@ -16,8 +18,36 @@ on_error() {
 }
 trap on_error ERR
 
+restore_env_stash() {
+  if [[ "$ENV_STASHED" == "1" && -n "$ENV_STASH_REF" ]]; then
+    log "Restoring local .env changes from stash (${ENV_STASH_REF})"
+    if git stash pop --index "$ENV_STASH_REF"; then
+      log "PASS: local .env changes restored"
+    else
+      echo "WARN: Could not auto-restore .env stash cleanly." >&2
+      echo "WARN: Resolve manually with: git stash list / git stash show -p ${ENV_STASH_REF}" >&2
+    fi
+    ENV_STASHED=0
+    ENV_STASH_REF=""
+  fi
+}
+trap restore_env_stash EXIT
+
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
+}
+
+stash_local_env_changes_if_needed() {
+  # Stash only tracked env files so git pull can proceed while preserving server-local secrets.
+  if ! git diff --quiet -- .env .env.local 2>/dev/null; then
+    log "Local env changes detected. Stashing tracked env files before pull."
+    git stash push -m "run.sh:auto-env-stash:$(date +%s)" -- .env .env.local >/dev/null || true
+    ENV_STASH_REF="$(git stash list | head -n 1 | cut -d: -f1)"
+    if [[ -n "$ENV_STASH_REF" ]]; then
+      ENV_STASHED=1
+      log "PASS: env files stashed as ${ENV_STASH_REF}"
+    fi
+  fi
 }
 
 check_port_conflicts() {
@@ -207,9 +237,11 @@ log "PASS: Docker base images pulled"
 
 CURRENT_PHASE="git.sync"
 log "Phase git.sync: fetch, switch main, pull latest"
+stash_local_env_changes_if_needed
 git fetch --all --prune
 git checkout main
 git pull --ff-only origin main
+restore_env_stash
 
 if [[ "${CLEAN_BRANCHES:-1}" == "1" ]]; then
   CURRENT_PHASE="git.cleanup"
