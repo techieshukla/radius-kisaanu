@@ -244,6 +244,31 @@ check_radius_runtime() {
   [[ -n "$acct_bind" ]] || die "freeradius acct UDP port ${RADIUS_ACCT_PORT} is not bound."
 }
 
+wait_radius_ready() {
+  local retries="${RADIUS_READY_RETRIES:-25}"
+  local delay="${RADIUS_READY_DELAY_SEC:-2}"
+  local i
+  local psout
+  local auth_bind
+  local acct_bind
+
+  for ((i=1; i<=retries; i++)); do
+    psout="$("${COMPOSE[@]}" ps freeradius)"
+    auth_bind="$(ss -lunp "( sport = :${RADIUS_AUTH_PORT} )" 2>/dev/null | tail -n +2 || true)"
+    acct_bind="$(ss -lunp "( sport = :${RADIUS_ACCT_PORT} )" 2>/dev/null | tail -n +2 || true)"
+
+    if echo "$psout" | grep -q "Up" && [[ -n "$auth_bind" ]] && [[ -n "$acct_bind" ]]; then
+      return 0
+    fi
+    log "INFO: waiting freeradius readiness (${i}/${retries})..."
+    sleep "$delay"
+  done
+
+  log "ERROR: freeradius failed readiness checks. Recent logs:"
+  "${COMPOSE[@]}" logs --tail=80 freeradius || true
+  return 1
+}
+
 CURRENT_PHASE="precheck.tools"
 log "Phase precheck.tools: required tools"
 require_cmd git
@@ -342,7 +367,7 @@ fi
 
 compose_up_with_build_fallback freeradius
 "${COMPOSE[@]}" restart freeradius
-sleep 2
+wait_radius_ready || die "freeradius did not become ready in time."
 log "Postcheck: freeradius status after restart"
 check_radius_runtime
 log "PASS: freeradius deployed and restart checks passed"
