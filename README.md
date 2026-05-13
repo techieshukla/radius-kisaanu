@@ -1,87 +1,187 @@
 # radius-kisaanu
 
-Dockerized FreeRADIUS + MySQL + PHP/Nginx starter for a village captive portal backend.
+[![CI](https://github.com/techieshukla/radius-kisaanu/actions/workflows/ci.yml/badge.svg)](https://github.com/techieshukla/radius-kisaanu/actions/workflows/ci.yml)
+![Docker Compose](https://img.shields.io/badge/docker-compose-blue)
+![FreeRADIUS](https://img.shields.io/badge/FreeRADIUS-3.x-2a7fff)
+![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1)
+![PHP](https://img.shields.io/badge/PHP-8.3-777BB4)
+![Nginx](https://img.shields.io/badge/Nginx-stable-009639)
 
-## Quick start
-1. Copy env file:
-   - `cp .env.example .env`
-2. Update secrets in `.env`.
-3. Start stack:
-   - `docker compose up -d`
-4. Verify portal bootstrap:
-   - `curl http://127.0.0.1:${NGINX_HTTP_PORT:-80}`
-5. Verify default RADIUS auth:
-   - `docker compose exec -T freeradius sh -lc "radtest demo-user demo-pass 127.0.0.1 0 change_shared_secret"`
+Production-focused captive portal backend for public Wi-Fi with:
+- FreeRADIUS auth/accounting
+- MySQL user/plan/session data
+- PHP captive portal (register + login)
+- daloRADIUS admin GUI
+- phpMyAdmin DB GUI
+- Omada ER605 + EAP225 Outdoor integration support
 
-## Services
-- MySQL: internal-only (`mysql:3306` on Docker network)
-- FreeRADIUS auth: UDP `127.0.0.1:1812`
-- FreeRADIUS acct: UDP `127.0.0.1:1813`
-- Portal: `http://127.0.0.1:${NGINX_HTTP_PORT:-80}`
+## Stack
 
-## Current status
-- Phase 1 scaffold complete.
-- Phase 2 baseline complete: SQL auth/accounting active, seeded plan profiles + NAS + default users, radtest validated.
-- Portal login now performs local DB auth (`radcheck`) + per-day quota checks (`radacct` + `plan_profiles`) before Omada forward-auth.
-- Session timeout is clamped to remaining daily seconds and forwarded to Omada as `sessionTimeout`.
-- Register form supports selectable daily plans (`2h/4h/6h/8h`) sourced from active `plan_profiles`.
-- Registration metadata is captured in `portal_registrations` (masked Aadhaar, address, MAC/AP/SSID, plan).
+| Layer | Component | Purpose | Exposed Ports |
+|---|---|---|---|
+| Portal | Nginx + PHP-FPM | Captive login/register pages | `${NGINX_BIND_IP}:${NGINX_HTTP_PORT}` |
+| AAA | FreeRADIUS | RADIUS auth/accounting | `${RADIUS_BIND_IP}:${RADIUS_AUTH_PORT}/udp`, `${RADIUS_BIND_IP}:${RADIUS_ACCT_PORT}/udp` |
+| Data | MySQL 8.4 | Users, plans, accounting, portal metadata | internal only |
+| RADIUS GUI | daloRADIUS | User/group/accounting management | `${DALORADIUS_BIND_IP}:${DALORADIUS_HTTP_PORT}` |
+| DB GUI | phpMyAdmin | DB admin and SQL inspection | `${PHPMYADMIN_BIND_IP}:${PHPMYADMIN_HTTP_PORT}` |
 
-## Default seeded users
-- `demo-user / demo-pass` (`FREE_2H_DAILY`)
-- `village-user / VillageUser@123` (`FREE_4H_DAILY`)
-- `village-admin / VillageAdmin@123` (`FREE_8H_DAILY`)
+## Runtime Packages and Images
 
-Change these credentials before production.
+| Service | Base Image / Runtime |
+|---|---|
+| `freeradius` | `debian:bookworm-slim` + `freeradius`, `freeradius-utils`, `freeradius-mysql` |
+| `mysql` | `mysql:8.4` |
+| `php` | `php:8.3-fpm-alpine` + `pdo_mysql`, `mysqli`, `curl` |
+| `nginx` | `nginx:stable-alpine` |
+| `daloradius` | `php:8.3-apache` + PEAR `DB` + patched daloRADIUS |
+| `phpmyadmin` | `phpmyadmin:latest` + Apache `ServerName` fix |
 
-## Omada EAP225 Outdoor
-- Integration and ports/protocol matrix:
-  - [OMADA_EAP225_OUTDOOR.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/OMADA_EAP225_OUTDOOR.md)
-- Wi-Fi/LAN deployment steps:
+## Key Features
+
+- Plan-based free usage (`2h/4h/6h/8h`) via `plan_profiles`
+- Daily quota enforcement from `radacct`
+- Registration flow with profile capture (`portal_registrations`)
+- Omada forward-auth bridge (`target`, `clientMac`, `apMac`, `ssidName`, `radioId`)
+- daloRADIUS PHP 8.x compatibility and permission fixes
+- Bind-IP controls for all exposed services via `.env`
+
+## Repository Structure
+
+- `docker-compose.yml`: full service topology
+- `portal/public/wifi.php`: captive portal UI + request flow
+- `portal/src/`: auth service, DB repo, Omada client, logging
+- `freeradius/`: site policy, SQL integration, clients template
+- `mysql/init/`: schema + seed data
+- `daloradius/`: image build and runtime fixes
+- `nginx/`: portal routing + PHP fastcgi
+- `scripts/`: checks, migrations, bootstrap helpers
+- `docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md`: 1-8 execution plan
+- `DEPLOY_EC2_UBUNTU24.md`: full EC2 deploy commands
+
+## Quick Start (Local)
+
+1. Configure env:
+```bash
+cp .env.example .env
+```
+
+2. Build and start:
+```bash
+docker compose up -d --build
+docker compose ps
+```
+
+3. Optional DB updates for existing volume:
+```bash
+./scripts/migrate-portal-registration-table.sh
+./scripts/setup-daloradius-db.sh
+```
+
+4. Health checks:
+```bash
+./scripts/check-captive-stack.sh
+./scripts/omada-cutover-precheck.sh
+```
+
+## Full Deploy Guides
+
+- General Wi-Fi/LAN deploy:
   - [DEPLOY.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/DEPLOY.md)
-- Ubuntu 24.04 EC2 full-command deployment:
+- Ubuntu 24.04 EC2 full command runbook:
   - [DEPLOY_EC2_UBUNTU24.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/DEPLOY_EC2_UBUNTU24.md)
-- ER605 + EAP225 step-by-step execution plan (1-8):
+- Omada ER605 + EAP225 implementation plan:
   - [docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md)
-- Optional isolated Omada Controller compose:
-  - `omada-controller/docker-compose.yml` with `omada-controller/.env.example`
+- Protocol/port matrix:
+  - [OMADA_EAP225_OUTDOOR.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/OMADA_EAP225_OUTDOOR.md)
 
-## Portal validation checks
-- Success (local auth + quota):
-  - `curl -sS -X POST 'http://127.0.0.1:${NGINX_HTTP_PORT:-80}/wifi.php' --data 'formMode=login&username=demo-user&password=demo-pass'`
-- Wrong password rejection:
-  - `curl -sS -X POST 'http://127.0.0.1:${NGINX_HTTP_PORT:-80}/wifi.php' --data 'formMode=login&username=demo-user&password=wrong-pass'`
+## Omada Mapping (Paste Values)
 
-## Unit tests
-- Run backend unit tests:
-  - `php portal/tests/run.php`
+Use in Omada Controller:
+- External Portal URL:
+  - `http://<SERVER_IP>:<NGINX_HTTP_PORT>/wifi.php`
+- RADIUS Server:
+  - Host: `<SERVER_IP>`
+  - Auth: `${RADIUS_AUTH_PORT}`
+  - Acct: `${RADIUS_ACCT_PORT}`
+  - Secret: `.env -> RADIUS_SHARED_SECRET`
 
-## MySQL data loading
-- Seed files in `mysql/init/` are loaded automatically on fresh volume.
-- For existing DB volumes, ensure registration table exists:
-  - `./scripts/migrate-portal-registration-table.sh`
-- Add sample accounting row:
-  - `./scripts/load-test-data.sh`
+## Environment Variables
 
-## Logging
-- Structured JSON logs are written by backend service layer.
-- Default path:
-  - `/tmp/portal.log` (container fallback)
+Core bind and ports:
+- `NGINX_BIND_IP`, `NGINX_HTTP_PORT`
+- `DALORADIUS_BIND_IP`, `DALORADIUS_HTTP_PORT`
+- `PHPMYADMIN_BIND_IP`, `PHPMYADMIN_HTTP_PORT`
+- `RADIUS_BIND_IP`, `RADIUS_AUTH_PORT`, `RADIUS_ACCT_PORT`
 
-## Operations scripts
-- Pre-cutover validation:
-  - `./scripts/omada-cutover-precheck.sh`
-- Captive stack health check:
-  - `./scripts/check-captive-stack.sh`
-- Restrict admin ports (`8091/8092`) to admin CIDR via UFW:
+RADIUS/DB:
+- `RADIUS_SHARED_SECRET`
+- `RADIUS_CLIENT_NAME`, `RADIUS_CLIENT_IP`
+- `RADIUS_DB_HOST`, `RADIUS_DB_NAME`, `RADIUS_DB_USER`, `RADIUS_DB_PASS`
+
+Portal/infra:
+- `OMADA_CONTROLLER_IP`
+- `TZ`
+
+## Testing
+
+Backend tests:
+```bash
+php portal/tests/run.php
+```
+
+Portal endpoint quick check:
+```bash
+curl -sSI "http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/wifi.php" | head -n 5
+```
+
+RADIUS local check:
+```bash
+docker compose exec -T freeradius sh -lc "radtest demo-user demo-pass 127.0.0.1 0 ${RADIUS_SHARED_SECRET:-change_shared_secret}"
+```
+
+## CI
+
+GitHub Actions workflow: `.github/workflows/ci.yml`
+
+CI validates:
+- PHP syntax lint for portal source
+- Portal unit tests (`portal/tests/run.php`)
+- Shell script lint (`shellcheck`)
+- Docker Compose config resolution (`docker compose config`)
+
+## Git Labels
+
+Label catalog:
+- [.github/LABELS.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/.github/LABELS.md)
+
+Create/update labels in GitHub repo:
+```bash
+./scripts/setup-github-labels.sh techieshukla/radius-kisaanu
+```
+
+## Operations
+
+- Captive stack checks: `./scripts/check-captive-stack.sh`
+- Omada cutover readiness: `./scripts/omada-cutover-precheck.sh`
+- Restrict admin ports to CIDR:
   - `./scripts/secure-admin-ports-ufw.sh <admin-cidr>`
 
-## GUI management
-- daloRADIUS (RADIUS users/plans/accounting):
-  - URL: `http://127.0.0.1:8091` (redirects to operators UI)
-  - Direct URL: `http://127.0.0.1:8091/daloradius/app/operators/index.php`
-  - DB schema load (one-time or when DB is fresh): `./scripts/setup-daloradius-db.sh`
-- phpMyAdmin (MySQL admin):
-  - URL: `http://127.0.0.1:8092`
-  - Server/host: `mysql`
-  - User: `radius` (or `root`)
+## Optional: Isolated Omada Controller Compose
+
+For separated controller deployment:
+- `omada-controller/docker-compose.yml`
+- `omada-controller/.env.example`
+
+Start:
+```bash
+cd omada-controller
+cp .env.example .env
+docker compose up -d
+```
+
+## Security Notes
+
+- Rotate all default credentials/secrets before production.
+- Keep `8091` and `8092` restricted to admin IPs.
+- Prefer HTTPS in front of captive portal for production.
+- Backup MySQL volume regularly.

@@ -10,12 +10,27 @@ require_once __DIR__ . '/../src/PortalAuthService.php';
 require_once __DIR__ . '/../src/OmadaClient.php';
 
 function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
+function safe_continue_url(string $value): string
+{
+    $value = trim($value);
+    if ($value === '') {
+        return '';
+    }
+    if (preg_match('#^https?://#i', $value) === 1) {
+        return $value;
+    }
+    if (strpos($value, '/') === 0 && strpos($value, '//') !== 0) {
+        return $value;
+    }
+    return '';
+}
 
 $target = $_GET['target'] ?? ($_POST['target'] ?? '');
 $clientMac = $_GET['clientMac'] ?? ($_POST['clientMac'] ?? '');
 $apMac = $_GET['apMac'] ?? ($_POST['apMac'] ?? '');
 $ssidName = $_GET['ssidName'] ?? ($_POST['ssidName'] ?? '');
 $radioId = $_GET['radioId'] ?? ($_POST['radioId'] ?? '');
+$continueUrl = safe_continue_url((string)($_GET['continueUrl'] ?? ($_POST['continueUrl'] ?? ($_GET['redirect'] ?? ($_POST['redirect'] ?? '')))));
 
 $statusType = '';
 $statusMessage = '';
@@ -363,6 +378,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <?php if ($statusMessage !== ''): ?>
             <div class="alert alert-<?php echo e($statusType); ?> mb-3" role="alert"><?php echo e($statusMessage); ?></div>
           <?php endif; ?>
+          <?php if ($statusType === 'success' && $continueUrl !== ''): ?>
+            <div class="alert alert-info mb-3" role="alert">
+              Login complete. Redirecting to continue page in <strong>3 seconds</strong>.
+              <a class="btn btn-sm btn-primary ms-2" href="<?php echo e($continueUrl); ?>">Continue Now</a>
+            </div>
+          <?php endif; ?>
 
           <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
             <div>
@@ -389,6 +410,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="apMac" value="<?php echo e($apMac); ?>" />
                 <input type="hidden" name="ssidName" value="<?php echo e($ssidName); ?>" />
                 <input type="hidden" name="radioId" value="<?php echo e($radioId); ?>" />
+                <input type="hidden" name="continueUrl" value="<?php echo e($continueUrl); ?>" />
 
                 <div class="col-12">
                   <label class="form-label fw-semibold" for="username">Username</label>
@@ -415,6 +437,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="apMac" value="<?php echo e($apMac); ?>" />
                 <input type="hidden" name="ssidName" value="<?php echo e($ssidName); ?>" />
                 <input type="hidden" name="radioId" value="<?php echo e($radioId); ?>" />
+                <input type="hidden" name="continueUrl" value="<?php echo e($continueUrl); ?>" />
 
                 <div class="col-md-6">
                   <label class="form-label fw-semibold" for="fullName">Full Name</label>
@@ -528,6 +551,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         var loginTab = new bootstrap.Tab(document.querySelector('#login-tab'));
         loginTab.show();
       });
+      <?php if ($statusType === 'success' && $continueUrl !== ''): ?>
+      setTimeout(function () {
+        window.location.href = <?php echo json_encode($continueUrl, JSON_UNESCAPED_SLASHES); ?>;
+      }, 3000);
+      <?php endif; ?>
     })(jQuery);
   </script>
 </body>
