@@ -39,12 +39,12 @@ In Omada Controller:
 1. Adopt ER605 + EAP225 Outdoor.
 2. Create Guest/Public SSID.
 3. Configure RADIUS:
-   - Server IP: `<docker_host_ip>`
+   - Server IP: `3.111.219.106`
    - Auth: `1812`
    - Acct: `1813`
    - Secret: `.env -> RADIUS_SHARED_SECRET`
 4. Configure External Portal URL:
-   - `http://<docker_host_ip>/wifi.php` (or `:<NGINX_HTTP_PORT>`)
+   - `http://3.111.219.106/wifi.php` (or `http://3.111.219.106:8090/wifi.php`)
 
 ## 5. Captive Parameter Mapping (Implemented in code)
 Portal endpoint supports Omada query params:

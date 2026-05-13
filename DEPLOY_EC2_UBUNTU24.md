@@ -25,7 +25,7 @@ Attach Security Group inbound rules:
 ## 2. SSH into EC2
 
 ```bash
-ssh -i /path/to/your-key.pem ubuntu@<EC2_PUBLIC_IP>
+ssh -i /path/to/your-key.pem ubuntu@3.111.219.106
 ```
 
 ## 3. Install Docker + Compose plugin
@@ -88,7 +88,7 @@ RADIUS_DB_HOST=mysql
 RADIUS_SHARED_SECRET=<strong-radius-shared-secret>
 RADIUS_CLIENT_NAME=omada-eap225-outdoor
 RADIUS_CLIENT_IP=<OMADA_CONTROLLER_OR_AP_SUBNET>
-OMADA_CONTROLLER_IP=<OMADA_CONTROLLER_IP>
+OMADA_CONTROLLER_IP=3.111.219.106
 
 NGINX_BIND_IP=0.0.0.0
 NGINX_HTTP_PORT=80
@@ -129,19 +129,19 @@ curl -sSI http://127.0.0.1:${PHPMYADMIN_HTTP_PORT}/ | head -n 5
 ```
 
 Public/LAN URLs:
-- Portal: `http://<EC2_PUBLIC_IP>/wifi.php` (or `:<NGINX_HTTP_PORT>`)
-- daloRADIUS: `http://<EC2_PUBLIC_IP>:8091/daloradius/app/operators/index.php`
-- phpMyAdmin: `http://<EC2_PUBLIC_IP>:8092`
+- Portal: `http://3.111.219.106/wifi.php` (or `:<NGINX_HTTP_PORT>`)
+- daloRADIUS: `http://3.111.219.106:8091/daloradius/app/operators/index.php`
+- phpMyAdmin: `http://3.111.219.106:8092`
 
 ## 9. Configure Omada
 
 In Omada Controller:
-- External RADIUS server IP: `<EC2_PRIVATE_IP or reachable server IP>`
+- External RADIUS server IP: `3.111.219.106`
 - Auth Port: `1812`
 - Acct Port: `1813`
 - Shared Secret: same as `.env` `RADIUS_SHARED_SECRET`
 - Captive Portal URL:
-  - `http://<SERVER_IP>/wifi.php`
+  - `http://3.111.219.106/wifi.php` (or `http://3.111.219.106:8090/wifi.php` if using 8090)
   - Include Omada query params (`target`, `clientMac`, `apMac`, `ssidName`, `radioId`)
 
 ## 10. Firewall on EC2 OS (optional if using SG only)

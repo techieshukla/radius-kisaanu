@@ -100,11 +100,11 @@ docker compose ps
 
 Use in Omada Controller:
 - External Portal URL:
-  - `http://<SERVER_IP>:<NGINX_HTTP_PORT>/wifi.php`
+  - `http://3.111.219.106:8090/wifi.php`
 - RADIUS Server:
-  - Host: `<SERVER_IP>`
-  - Auth: `${RADIUS_AUTH_PORT}`
-  - Acct: `${RADIUS_ACCT_PORT}`
+  - Host: `3.111.219.106`
+  - Auth: `1812`
+  - Acct: `1813`
   - Secret: `.env -> RADIUS_SHARED_SECRET`
 
 ## Environment Variables

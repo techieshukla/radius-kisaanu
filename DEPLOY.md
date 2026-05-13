@@ -48,7 +48,7 @@ curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT}/wifi.php
 
 ## 4. Verify from Wi-Fi client
 From a phone/laptop connected to same Wi-Fi:
-- Open `http://<SERVER_LAN_IP>/wifi.php`
+- Open `http://3.111.219.106:8090/wifi.php` (or your server LAN/private IP in local deployments)
 - Confirm page loads.
 
 ## 5. Configure Omada (EAP225 Outdoor)
@@ -60,7 +60,7 @@ In Omada Controller:
    - Acct Port: `1813`
    - Shared Secret: same as `.env` `RADIUS_SHARED_SECRET`
 3. Captive portal redirect URL:
-   - `http://<SERVER_LAN_IP>/wifi.php`
+   - `http://3.111.219.106:8090/wifi.php`
 4. Ensure Omada passes query params (`target`, `clientMac`, `apMac`, `ssidName`, `radioId`) to portal URL.
 
 ## 6. Production hardening checklist
