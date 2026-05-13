@@ -62,6 +62,7 @@ check_port_conflicts() {
   local allow_pattern=",${allow_csv},"
   local check_tcp="${CHECK_TCP_PORT_CONFLICTS:-0}"
   local check_udp="${CHECK_UDP_PORT_CONFLICTS:-1}"
+  local inspect_out
 
   if [[ "$check_tcp" == "1" ]]; then
     for p in "${tcp_ports[@]}"; do
@@ -70,9 +71,16 @@ check_port_conflicts() {
         continue
       fi
       out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
-      if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
-        printf "\nERROR: TCP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
-        die "Resolve conflict (or change port in ${ENV_FILE}) before deploy."
+      if [[ -n "$out" ]]; then
+        if grep -q "docker-proxy" <<<"$out"; then
+          continue
+        fi
+        inspect_out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null || true)"
+        if grep -q "users:(" <<<"$inspect_out"; then
+          printf "\nERROR: TCP port %s is already in use by a confirmed non-docker process.\n%s\n" "$p" "$inspect_out" >&2
+          die "Resolve conflict (or change port in ${ENV_FILE}) before deploy."
+        fi
+        log "WARN: TCP port ${p} is in LISTEN state but owner is not visible; skipping hard-fail."
       fi
     done
   else
@@ -86,9 +94,16 @@ check_port_conflicts() {
         continue
       fi
       out="$(ss -lunp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
-      if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
-        printf "\nERROR: UDP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
-        die "Resolve conflict (or change RADIUS port in ${ENV_FILE}) before deploy."
+      if [[ -n "$out" ]]; then
+        if grep -q "docker-proxy" <<<"$out"; then
+          continue
+        fi
+        inspect_out="$(ss -lunp "( sport = :${p} )" 2>/dev/null || true)"
+        if grep -q "users:(" <<<"$inspect_out"; then
+          printf "\nERROR: UDP port %s is already in use by a confirmed non-docker process.\n%s\n" "$p" "$inspect_out" >&2
+          die "Resolve conflict (or change RADIUS port in ${ENV_FILE}) before deploy."
+        fi
+        log "WARN: UDP port ${p} is bound but owner is not visible; skipping hard-fail."
       fi
     done
   else
