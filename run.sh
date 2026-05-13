@@ -38,10 +38,23 @@ require_cmd() {
 }
 
 stash_local_env_changes_if_needed() {
+  local tracked_env_files=()
+
   # Stash only tracked env files so git pull can proceed while preserving server-local secrets.
-  if ! git diff --quiet -- .env .env.local 2>/dev/null; then
+  if git ls-files --error-unmatch .env >/dev/null 2>&1; then
+    tracked_env_files+=(".env")
+  fi
+  if git ls-files --error-unmatch .env.local >/dev/null 2>&1; then
+    tracked_env_files+=(".env.local")
+  fi
+
+  if [[ "${#tracked_env_files[@]}" -eq 0 ]]; then
+    return 0
+  fi
+
+  if ! git diff --quiet -- "${tracked_env_files[@]}" 2>/dev/null; then
     log "Local env changes detected. Stashing tracked env files before pull."
-    git stash push -m "run.sh:auto-env-stash:$(date +%s)" -- .env .env.local >/dev/null || true
+    git stash push -m "run.sh:auto-env-stash:$(date +%s)" -- "${tracked_env_files[@]}" >/dev/null || true
     ENV_STASH_REF="$(git stash list | head -n 1 | cut -d: -f1)"
     if [[ -n "$ENV_STASH_REF" ]]; then
       ENV_STASHED=1
