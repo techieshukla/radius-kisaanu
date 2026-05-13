@@ -1,7 +1,15 @@
 #!/usr/bin/env sh
 set -eu
 
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+ROOT_DIR="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
+
 ENV_FILE="${ENV_FILE:-.env}"
+case "$ENV_FILE" in
+  /*) ;;
+  *) ENV_FILE="${ROOT_DIR}/${ENV_FILE}" ;;
+esac
+
 COMPOSE="docker compose --env-file ${ENV_FILE}"
 
 if [ ! -f "$ENV_FILE" ]; then
