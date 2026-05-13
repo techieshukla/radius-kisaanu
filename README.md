@@ -83,6 +83,24 @@ docker compose ps
 ./scripts/omada-cutover-precheck.sh
 ```
 
+## One-Command Server Deploy
+
+After cloning on server, run:
+
+```bash
+./run.sh
+```
+
+What it does:
+- prechecks tooling and docker daemon
+- fetch/pull latest `main`
+- cleans merged local branches (can disable: `CLEAN_BRANCHES=0 ./run.sh`)
+- runs PHP lint + unit tests
+- validates `.env` required keys/secrets
+- deploys services step-by-step with streaming output
+- runs DB migration/bootstrap tasks
+- executes post-deploy health checks
+
 ## Full Deploy Guides
 
 - General Wi-Fi/LAN deploy:
@@ -93,6 +111,8 @@ docker compose ps
   - [docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/docs/OMADA_ER605_EAP225_EXECUTION_PLAN.md)
 - Omada form field values for `wifi.kisaanu.com`:
   - [docs/OMADA_FIELD_VALUES_WIFI_KISAANU.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/docs/OMADA_FIELD_VALUES_WIFI_KISAANU.md)
+- `wifi.kisaanu.com` without port via host Nginx reverse proxy:
+  - [docs/WIFI_DOMAIN_NO_PORT_NGINX_PROXY.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/docs/WIFI_DOMAIN_NO_PORT_NGINX_PROXY.md)
 - Protocol/port matrix:
   - [OMADA_EAP225_OUTDOOR.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/OMADA_EAP225_OUTDOOR.md)
 
