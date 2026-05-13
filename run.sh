@@ -20,6 +20,29 @@ require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
 }
 
+check_port_conflicts() {
+  local tcp_ports=("${NGINX_HTTP_PORT}" "${DALORADIUS_HTTP_PORT}" "${PHPMYADMIN_HTTP_PORT}")
+  local udp_ports=("${RADIUS_AUTH_PORT}" "${RADIUS_ACCT_PORT}")
+  local p
+  local out
+
+  for p in "${tcp_ports[@]}"; do
+    out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
+    if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
+      printf "\nERROR: TCP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
+      die "Resolve conflict (or change port in ${ENV_FILE}) before deploy."
+    fi
+  done
+
+  for p in "${udp_ports[@]}"; do
+    out="$(ss -lunp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
+    if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
+      printf "\nERROR: UDP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
+      die "Resolve conflict (or change RADIUS port in ${ENV_FILE}) before deploy."
+    fi
+  done
+}
+
 check_required_env() {
   local required=(
     MYSQL_ROOT_PASSWORD
@@ -71,6 +94,7 @@ require_cmd git
 require_cmd docker
 require_cmd php
 require_cmd curl
+require_cmd ss
 
 docker info >/dev/null 2>&1 || die "Docker daemon is not reachable."
 docker compose version >/dev/null 2>&1 || die "Docker Compose plugin is not available."
@@ -115,6 +139,11 @@ CURRENT_PHASE="compose.validate"
 log "Phase compose.validate: docker compose config"
 "${COMPOSE[@]}" config >/dev/null
 log "PASS: docker compose config is valid"
+
+CURRENT_PHASE="precheck.ports"
+log "Phase precheck.ports: checking host port conflicts"
+check_port_conflicts
+log "PASS: no blocking host port conflicts detected"
 
 CURRENT_PHASE="deploy.mysql"
 log "Phase deploy.mysql: mysql"
