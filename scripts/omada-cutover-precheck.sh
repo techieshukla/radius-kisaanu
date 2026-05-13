@@ -5,7 +5,8 @@ echo "== Omada Cutover Precheck =="
 
 required_vars="RADIUS_SHARED_SECRET RADIUS_CLIENT_IP NGINX_BIND_IP NGINX_HTTP_PORT RADIUS_BIND_IP RADIUS_AUTH_PORT RADIUS_ACCT_PORT"
 for v in $required_vars; do
-  if [ -z "${!v:-}" ]; then
+  val="$(eval "printf '%s' \"\${$v:-}\"")"
+  if [ -z "$val" ]; then
     echo "FAIL: Missing env var $v"
     exit 1
   fi
