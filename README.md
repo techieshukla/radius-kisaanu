@@ -107,6 +107,8 @@ Environment selection:
 - Production default: `.env`
 - Local: `ENV_FILE=.env.local ./run.sh`
 - Sync verification overrides (optional): `SYNC_VERIFY_USER`, `SYNC_VERIFY_PASS`, `SYNC_VERIFY_PLAN`
+- Optional known-port bypass for precheck (comma-separated): `ALLOW_PORT_CONFLICTS`
+  - Example: `ALLOW_PORT_CONFLICTS=8090 ./run.sh`
 
 ## Full Deploy Guides
 

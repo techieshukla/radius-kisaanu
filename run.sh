@@ -25,8 +25,14 @@ check_port_conflicts() {
   local udp_ports=("${RADIUS_AUTH_PORT}" "${RADIUS_ACCT_PORT}")
   local p
   local out
+  local allow_csv="${ALLOW_PORT_CONFLICTS:-}"
+  local allow_pattern=",${allow_csv},"
 
   for p in "${tcp_ports[@]}"; do
+    if [[ "$allow_pattern" == *",${p},"* ]]; then
+      log "INFO: Skipping conflict check for allowed TCP port ${p}"
+      continue
+    fi
     out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
     if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
       printf "\nERROR: TCP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
@@ -35,6 +41,10 @@ check_port_conflicts() {
   done
 
   for p in "${udp_ports[@]}"; do
+    if [[ "$allow_pattern" == *",${p},"* ]]; then
+      log "INFO: Skipping conflict check for allowed UDP port ${p}"
+      continue
+    fi
     out="$(ss -lunp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
     if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
       printf "\nERROR: UDP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
