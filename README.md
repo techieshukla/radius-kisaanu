@@ -100,10 +100,12 @@ What it does:
 - deploys services step-by-step with streaming output
 - runs DB migration/bootstrap tasks
 - executes post-deploy health checks
+- verifies portal/daloRADIUS sync user exists in shared MySQL tables
 
 Environment selection:
 - Production default: `.env`
 - Local: `ENV_FILE=.env.local ./run.sh`
+- Sync verification overrides (optional): `SYNC_VERIFY_USER`, `SYNC_VERIFY_PASS`, `SYNC_VERIFY_PLAN`
 
 ## Full Deploy Guides
 
@@ -141,6 +143,7 @@ Core bind and ports:
 - `DALORADIUS_BIND_IP`, `DALORADIUS_HTTP_PORT`
 - `PHPMYADMIN_BIND_IP`, `PHPMYADMIN_HTTP_PORT`
 - `RADIUS_BIND_IP`, `RADIUS_AUTH_PORT`, `RADIUS_ACCT_PORT`
+- `MYSQL_VOLUME_NAME` (named persistent mysql volume)
 
 RADIUS/DB:
 - `RADIUS_SHARED_SECRET`

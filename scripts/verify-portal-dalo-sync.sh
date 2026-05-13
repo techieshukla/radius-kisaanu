@@ -13,7 +13,7 @@ set -a
 . "$ENV_FILE"
 set +a
 
-USERNAME="${1:-sync-test-user-$(date +%s)}"
+USERNAME="${1:-sync-test-user}"
 PASSWORD="${2:-SyncTest@123}"
 PLAN_CODE="${3:-FREE_2H_DAILY}"
 
@@ -28,8 +28,16 @@ sh -c "${COMPOSE} ps" >/dev/null
 echo "Step 2: ensure dalo schema/migration prerequisites..."
 sh -c "${COMPOSE} exec -T daloradius sh -lc \"php -v >/dev/null\"" >/dev/null
 
-echo "Step 3: upsert user directly in RADIUS tables through mysql (same path portal uses)..."
-sh -c "${COMPOSE} exec -T mysql mysql -uroot -p\"${MYSQL_ROOT_PASSWORD}\" radius" <<SQL
+echo "Step 3: ensure test user exists in RADIUS tables..."
+EXISTS_CHECK="$(sh -c "${COMPOSE} exec -T mysql mysql -N -B -uroot -p\"${MYSQL_ROOT_PASSWORD}\" -e \"SELECT CONCAT((SELECT COUNT(*) FROM radius.radcheck WHERE username='${USERNAME}' AND attribute='Cleartext-Password'),'|',(SELECT COUNT(*) FROM radius.radusergroup WHERE username='${USERNAME}' AND groupname='${PLAN_CODE}'));\"")"
+RC_EXISTS="$(echo "$EXISTS_CHECK" | cut -d'|' -f1)"
+RUG_EXISTS="$(echo "$EXISTS_CHECK" | cut -d'|' -f2)"
+
+if [ "$RC_EXISTS" = "1" ] && [ "$RUG_EXISTS" = "1" ]; then
+  echo "INFO: user ${USERNAME} already exists with plan ${PLAN_CODE}, reusing."
+else
+  echo "INFO: user missing, creating/updating now."
+  sh -c "${COMPOSE} exec -T mysql mysql -uroot -p\"${MYSQL_ROOT_PASSWORD}\" radius" <<SQL
 DELETE FROM radcheck WHERE username='${USERNAME}' AND attribute='Cleartext-Password';
 INSERT INTO radcheck (username, attribute, op, value)
 VALUES ('${USERNAME}', 'Cleartext-Password', ':=', '${PASSWORD}');
@@ -38,6 +46,7 @@ DELETE FROM radusergroup WHERE username='${USERNAME}';
 INSERT INTO radusergroup (username, groupname, priority)
 VALUES ('${USERNAME}', '${PLAN_CODE}', 1);
 SQL
+fi
 
 echo "Step 4: verify user is present in RADIUS tables (dalo reads these)..."
 RADCHECK_ROW="$(sh -c "${COMPOSE} exec -T mysql mysql -N -B -uroot -p\"${MYSQL_ROOT_PASSWORD}\" -e \"SELECT COUNT(*) FROM radius.radcheck WHERE username='${USERNAME}' AND attribute='Cleartext-Password';\"")"

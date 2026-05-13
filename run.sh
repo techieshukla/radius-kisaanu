@@ -149,6 +149,14 @@ log "Phase postdeploy.checks: health checks"
 ./scripts/omada-cutover-precheck.sh
 log "PASS: health checks completed"
 
+CURRENT_PHASE="postdeploy.syncverify"
+log "Phase postdeploy.syncverify: verify portal-dalo sync"
+SYNC_VERIFY_USER="${SYNC_VERIFY_USER:-sync-test-user}"
+SYNC_VERIFY_PASS="${SYNC_VERIFY_PASS:-SyncTest@123}"
+SYNC_VERIFY_PLAN="${SYNC_VERIFY_PLAN:-FREE_2H_DAILY}"
+ENV_FILE="$ENV_FILE" ./scripts/verify-portal-dalo-sync.sh "$SYNC_VERIFY_USER" "$SYNC_VERIFY_PASS" "$SYNC_VERIFY_PLAN"
+log "PASS: portal-dalo sync verified"
+
 CURRENT_PHASE="done"
 log "Deployment completed successfully."
 "${COMPOSE[@]}" ps

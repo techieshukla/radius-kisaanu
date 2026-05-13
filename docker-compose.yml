@@ -126,6 +126,7 @@ services:
 
 volumes:
   mysql_data:
+    name: ${MYSQL_VOLUME_NAME:-radius_kisaanu_mysql_data}
 
 networks:
   radius_net:
