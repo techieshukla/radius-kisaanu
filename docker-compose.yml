@@ -42,8 +42,8 @@ services:
       RADIUS_CLIENT_NAME: ${RADIUS_CLIENT_NAME:-local-nas}
       RADIUS_CLIENT_IP: ${RADIUS_CLIENT_IP:-172.20.0.0/16}
     ports:
-      - "${RADIUS_AUTH_PORT:-1812}:1812/udp"
-      - "${RADIUS_ACCT_PORT:-1813}:1813/udp"
+      - "${RADIUS_BIND_IP:-0.0.0.0}:${RADIUS_AUTH_PORT:-1812}:1812/udp"
+      - "${RADIUS_BIND_IP:-0.0.0.0}:${RADIUS_ACCT_PORT:-1813}:1813/udp"
     entrypoint: ["/bin/sh", "/usr/local/bin/freeradius-entrypoint.sh"]
     networks:
       - radius_net
@@ -99,7 +99,7 @@ services:
       DB_USER: ${RADIUS_DB_USER:-radius}
       DB_PASS: ${RADIUS_DB_PASS:-change_radius_password}
     ports:
-      - "${DALORADIUS_HTTP_PORT:-8091}:80"
+      - "${DALORADIUS_BIND_IP:-0.0.0.0}:${DALORADIUS_HTTP_PORT:-8091}:80"
     networks:
       - radius_net
 
@@ -120,7 +120,7 @@ services:
       PMA_PASSWORD: ${RADIUS_DB_PASS:-change_radius_password}
       UPLOAD_LIMIT: 64M
     ports:
-      - "${PHPMYADMIN_HTTP_PORT:-8092}:80"
+      - "${PHPMYADMIN_BIND_IP:-0.0.0.0}:${PHPMYADMIN_HTTP_PORT:-8092}:80"
     networks:
       - radius_net
 

@@ -39,6 +39,8 @@ Change these credentials before production.
   - [OMADA_EAP225_OUTDOOR.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/OMADA_EAP225_OUTDOOR.md)
 - Wi-Fi/LAN deployment steps:
   - [DEPLOY.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/DEPLOY.md)
+- Ubuntu 24.04 EC2 full-command deployment:
+  - [DEPLOY_EC2_UBUNTU24.md](/Applications/XAMPP/xamppfiles/htdocs/radius-kisaanu/DEPLOY_EC2_UBUNTU24.md)
 
 ## Portal validation checks
 - Success (local auth + quota):
