@@ -3,9 +3,18 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT_DIR"
+ENV_FILE="${ENV_FILE:-.env}"
+export ENV_FILE
+COMPOSE=(docker compose --env-file "$ENV_FILE")
+CURRENT_PHASE="init"
 
 log() { printf "\n[%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "$*"; }
 die() { printf "\nERROR: %s\n" "$*" >&2; exit 1; }
+on_error() {
+  local exit_code=$?
+  printf "\nERROR: run.sh failed during phase: %s (exit=%s)\n" "$CURRENT_PHASE" "$exit_code" >&2
+}
+trap on_error ERR
 
 require_cmd() {
   command -v "$1" >/dev/null 2>&1 || die "Missing required command: $1"
@@ -37,7 +46,10 @@ check_required_env() {
   done
 
   if [[ "${MYSQL_ROOT_PASSWORD}" == change_* || "${MYSQL_PASSWORD}" == change_* || "${RADIUS_SHARED_SECRET}" == change_* ]]; then
-    die "Detected insecure placeholder secrets (change_*). Update .env before deploy."
+    die "Detected insecure placeholder secrets (change_*). Update ${ENV_FILE} before deploy."
+  fi
+  if [[ "${MYSQL_ROOT_PASSWORD}" == REPLACE_ME* || "${MYSQL_PASSWORD}" == REPLACE_ME* || "${RADIUS_SHARED_SECRET}" == REPLACE_ME* ]]; then
+    die "Detected placeholder values (REPLACE_ME*). Update ${ENV_FILE} before deploy."
   fi
 }
 
@@ -45,7 +57,7 @@ wait_mysql_healthy() {
   local retries=30
   local i
   for ((i=1; i<=retries; i++)); do
-    if docker compose ps mysql | grep -q "healthy"; then
+    if "${COMPOSE[@]}" ps mysql | grep -q "healthy"; then
       return 0
     fi
     sleep 2
@@ -53,7 +65,8 @@ wait_mysql_healthy() {
   return 1
 }
 
-log "Precheck: required tools"
+CURRENT_PHASE="precheck.tools"
+log "Phase precheck.tools: required tools"
 require_cmd git
 require_cmd docker
 require_cmd php
@@ -64,13 +77,15 @@ docker compose version >/dev/null 2>&1 || die "Docker Compose plugin is not avai
 
 [[ -d .git ]] || die "This directory is not a git repository."
 
-log "Git: fetch, switch main, pull latest"
+CURRENT_PHASE="git.sync"
+log "Phase git.sync: fetch, switch main, pull latest"
 git fetch --all --prune
 git checkout main
 git pull --ff-only origin main
 
 if [[ "${CLEAN_BRANCHES:-1}" == "1" ]]; then
-  log "Git: cleaning merged local branches (excluding main/master)"
+  CURRENT_PHASE="git.cleanup"
+  log "Phase git.cleanup: cleaning merged local branches (excluding main/master)"
   mapfile -t merged_branches < <(git for-each-ref refs/heads --format='%(refname:short)' | grep -Ev '^(main|master)$' || true)
   if [[ "${#merged_branches[@]}" -gt 0 ]]; then
     for b in "${merged_branches[@]}"; do
@@ -79,40 +94,61 @@ if [[ "${CLEAN_BRANCHES:-1}" == "1" ]]; then
   fi
 fi
 
-log "Tests: PHP lint and unit tests"
+CURRENT_PHASE="tests.lint"
+log "Phase tests.lint: PHP lint"
 find portal -type f -name "*.php" -print0 | xargs -0 -n1 php -l >/dev/null
+log "PASS: PHP lint completed"
+CURRENT_PHASE="tests.unit"
+log "Phase tests.unit: unit tests"
 php portal/tests/run.php
+log "PASS: UNIT TESTS PASSED"
 
-log "Precheck: load and validate .env"
-[[ -f .env ]] || die ".env not found. Copy from .env.example first."
+CURRENT_PHASE="env.validate"
+log "Phase env.validate: load and validate env file (${ENV_FILE})"
+[[ -f "$ENV_FILE" ]] || die "${ENV_FILE} not found."
 set -a
-source .env
+source "$ENV_FILE"
 set +a
 check_required_env
 
-log "Docker Compose config validation"
-docker compose config >/dev/null
+CURRENT_PHASE="compose.validate"
+log "Phase compose.validate: docker compose config"
+"${COMPOSE[@]}" config >/dev/null
+log "PASS: docker compose config is valid"
 
-log "Deploy: mysql"
-docker compose up -d --build mysql
+CURRENT_PHASE="deploy.mysql"
+log "Phase deploy.mysql: mysql"
+"${COMPOSE[@]}" up -d --build mysql
 wait_mysql_healthy || die "MySQL did not become healthy."
+log "PASS: mysql healthy"
 
-log "Deploy: php and nginx"
-docker compose up -d --build php nginx
+CURRENT_PHASE="deploy.portal"
+log "Phase deploy.portal: php and nginx"
+"${COMPOSE[@]}" up -d --build php nginx
+log "PASS: php and nginx deployed"
 
-log "Deploy: freeradius"
-docker compose up -d --build freeradius
+CURRENT_PHASE="deploy.radius"
+log "Phase deploy.radius: freeradius"
+"${COMPOSE[@]}" up -d --build freeradius
+log "PASS: freeradius deployed"
 
-log "Deploy: daloradius and phpmyadmin"
-docker compose up -d --build daloradius phpmyadmin
+CURRENT_PHASE="deploy.admin"
+log "Phase deploy.admin: daloradius and phpmyadmin"
+"${COMPOSE[@]}" up -d --build daloradius phpmyadmin
+log "PASS: admin UIs deployed"
 
-log "Run post-deploy DB tasks"
+CURRENT_PHASE="postdeploy.dbtasks"
+log "Phase postdeploy.dbtasks: DB migration/bootstrap"
 ./scripts/migrate-portal-registration-table.sh
 ./scripts/setup-daloradius-db.sh || true
+log "PASS: DB tasks completed"
 
-log "Post-deploy checks"
+CURRENT_PHASE="postdeploy.checks"
+log "Phase postdeploy.checks: health checks"
 ./scripts/check-captive-stack.sh
 ./scripts/omada-cutover-precheck.sh
+log "PASS: health checks completed"
 
+CURRENT_PHASE="done"
 log "Deployment completed successfully."
-docker compose ps
+"${COMPOSE[@]}" ps
