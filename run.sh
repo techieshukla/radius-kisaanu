@@ -88,6 +88,22 @@ wait_mysql_healthy() {
   return 1
 }
 
+check_radius_runtime() {
+  local psout
+  local auth_bind
+  local acct_bind
+
+  psout="$("${COMPOSE[@]}" ps freeradius)"
+  echo "$psout"
+  echo "$psout" | grep -q "Up" || die "freeradius is not running."
+
+  auth_bind="$(ss -lunp "( sport = :${RADIUS_AUTH_PORT} )" 2>/dev/null | tail -n +2 || true)"
+  acct_bind="$(ss -lunp "( sport = :${RADIUS_ACCT_PORT} )" 2>/dev/null | tail -n +2 || true)"
+
+  [[ -n "$auth_bind" ]] || die "freeradius auth UDP port ${RADIUS_AUTH_PORT} is not bound."
+  [[ -n "$acct_bind" ]] || die "freeradius acct UDP port ${RADIUS_ACCT_PORT} is not bound."
+}
+
 CURRENT_PHASE="precheck.tools"
 log "Phase precheck.tools: required tools"
 require_cmd git
@@ -157,9 +173,20 @@ log "Phase deploy.portal: php and nginx"
 log "PASS: php and nginx deployed"
 
 CURRENT_PHASE="deploy.radius"
-log "Phase deploy.radius: freeradius"
+log "Phase deploy.radius: freeradius precheck/restart/postcheck"
+if [[ -n "$("${COMPOSE[@]}" ps -q freeradius 2>/dev/null || true)" ]]; then
+  log "Precheck: existing freeradius status before restart"
+  check_radius_runtime
+else
+  log "Precheck: freeradius container not created yet, proceeding with first start"
+fi
+
 "${COMPOSE[@]}" up -d --build freeradius
-log "PASS: freeradius deployed"
+"${COMPOSE[@]}" restart freeradius
+sleep 2
+log "Postcheck: freeradius status after restart"
+check_radius_runtime
+log "PASS: freeradius deployed and restart checks passed"
 
 CURRENT_PHASE="deploy.admin"
 log "Phase deploy.admin: daloradius and phpmyadmin"
