@@ -109,6 +109,9 @@ Environment selection:
 - Sync verification overrides (optional): `SYNC_VERIFY_USER`, `SYNC_VERIFY_PASS`, `SYNC_VERIFY_PLAN`
 - Optional known-port bypass for precheck (comma-separated): `ALLOW_PORT_CONFLICTS`
   - Example: `ALLOW_PORT_CONFLICTS=8090 ./run.sh`
+- Force docker to own configured ports by killing non-docker listeners before deploy:
+  - default enabled: `FORCE_DOCKER_PORT_OWNERSHIP=1`
+  - disable if needed: `FORCE_DOCKER_PORT_OWNERSHIP=0 ./run.sh`
 
 ## Full Deploy Guides
 

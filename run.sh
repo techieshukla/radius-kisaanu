@@ -53,6 +53,49 @@ check_port_conflicts() {
   done
 }
 
+kill_non_docker_port_owners() {
+  local ports=("${NGINX_HTTP_PORT}" "${DALORADIUS_HTTP_PORT}" "${PHPMYADMIN_HTTP_PORT}" "${RADIUS_AUTH_PORT}" "${RADIUS_ACCT_PORT}")
+  local p
+  local pids
+  local pid
+  local comm
+
+  for p in "${ports[@]}"; do
+    mapfile -t pids < <(ss -ltnup "( sport = :${p} )" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)
+    for pid in "${pids[@]:-}"; do
+      [[ -z "${pid:-}" ]] && continue
+      comm="$(ps -p "$pid" -o comm= 2>/dev/null || true)"
+      if [[ -z "$comm" ]]; then
+        continue
+      fi
+      if [[ "$comm" == "docker-proxy" || "$comm" == "dockerd" || "$comm" == "containerd" ]]; then
+        continue
+      fi
+      log "Killing non-docker process on port ${p}: pid=${pid} comm=${comm}"
+      kill -TERM "$pid" 2>/dev/null || true
+    done
+  done
+
+  sleep 2
+
+  # Hard-kill survivors on required ports.
+  for p in "${ports[@]}"; do
+    mapfile -t pids < <(ss -ltnup "( sport = :${p} )" 2>/dev/null | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' | sort -u)
+    for pid in "${pids[@]:-}"; do
+      [[ -z "${pid:-}" ]] && continue
+      comm="$(ps -p "$pid" -o comm= 2>/dev/null || true)"
+      if [[ -z "$comm" ]]; then
+        continue
+      fi
+      if [[ "$comm" == "docker-proxy" || "$comm" == "dockerd" || "$comm" == "containerd" ]]; then
+        continue
+      fi
+      log "Force killing stubborn process on port ${p}: pid=${pid} comm=${comm}"
+      kill -KILL "$pid" 2>/dev/null || true
+    done
+  done
+}
+
 retry_cmd() {
   local tries="$1"; shift
   local delay="$1"; shift
@@ -203,8 +246,20 @@ log "PASS: docker compose config is valid"
 
 CURRENT_PHASE="precheck.ports"
 log "Phase precheck.ports: checking host port conflicts"
+if [[ "${FORCE_DOCKER_PORT_OWNERSHIP:-1}" == "1" ]]; then
+  CURRENT_PHASE="precheck.portreclaim"
+  log "Phase precheck.portreclaim: reclaim configured ports from non-docker processes"
+  kill_non_docker_port_owners
+  log "PASS: attempted reclaim of configured service ports"
+fi
+CURRENT_PHASE="precheck.ports"
 check_port_conflicts
 log "PASS: no blocking host port conflicts detected"
+
+CURRENT_PHASE="deploy.reset"
+log "Phase deploy.reset: restarting full docker stack baseline"
+"${COMPOSE[@]}" down --remove-orphans || true
+log "PASS: docker baseline reset complete"
 
 CURRENT_PHASE="deploy.mysql"
 log "Phase deploy.mysql: mysql"
