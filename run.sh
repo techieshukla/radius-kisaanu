@@ -228,6 +228,18 @@ wait_mysql_healthy() {
   return 1
 }
 
+sync_mysql_radius_user() {
+  local sql
+  sql="
+CREATE DATABASE IF NOT EXISTS \`${RADIUS_DB_NAME}\`;
+CREATE USER IF NOT EXISTS '${RADIUS_DB_USER}'@'%' IDENTIFIED BY '${RADIUS_DB_PASS}';
+ALTER USER '${RADIUS_DB_USER}'@'%' IDENTIFIED BY '${RADIUS_DB_PASS}';
+GRANT ALL PRIVILEGES ON \`${RADIUS_DB_NAME}\`.* TO '${RADIUS_DB_USER}'@'%';
+FLUSH PRIVILEGES;
+"
+  "${COMPOSE[@]}" exec -T mysql mysql -uroot "-p${MYSQL_ROOT_PASSWORD}" -e "$sql"
+}
+
 check_radius_runtime() {
   local psout
   local retries="${RADIUS_READY_RETRIES:-25}"
@@ -353,6 +365,8 @@ CURRENT_PHASE="deploy.mysql"
 log "Phase deploy.mysql: mysql"
 compose_up_with_build_fallback mysql
 wait_mysql_healthy || die "MySQL did not become healthy."
+log "Phase deploy.mysql.sync-user: ensure radius DB user and grants"
+sync_mysql_radius_user || die "Failed to sync MySQL radius user/password/grants."
 log "PASS: mysql healthy"
 
 CURRENT_PHASE="deploy.portal"
