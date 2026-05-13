@@ -93,6 +93,7 @@ After cloning on server, run:
 
 What it does:
 - prechecks tooling and docker daemon
+- pre-pulls required Docker base images with retries
 - fetch/pull latest `main`
 - cleans merged local branches (can disable: `CLEAN_BRANCHES=0 ./run.sh`)
 - runs PHP lint + unit tests
@@ -197,6 +198,8 @@ Create/update labels in GitHub repo:
 - Omada cutover readiness: `./scripts/omada-cutover-precheck.sh`
 - Restrict admin ports to CIDR:
   - `./scripts/secure-admin-ports-ufw.sh <admin-cidr>`
+- Fix outbound Docker registry connectivity on Ubuntu servers:
+  - `sudo ./scripts/fix-docker-outbound.sh`
 
 ## Optional: Isolated Omada Controller Compose
 

@@ -43,6 +43,36 @@ check_port_conflicts() {
   done
 }
 
+retry_cmd() {
+  local tries="$1"; shift
+  local delay="$1"; shift
+  local n=1
+  until "$@"; do
+    if (( n >= tries )); then
+      return 1
+    fi
+    log "Retry ${n}/${tries} failed. Waiting ${delay}s: $*"
+    sleep "$delay"
+    n=$((n + 1))
+  done
+}
+
+prepull_base_images() {
+  local images=(
+    "php:8.3-fpm-alpine"
+    "nginx:stable-alpine"
+    "mysql:8.4"
+    "phpmyadmin:latest"
+    "php:8.3-apache"
+    "debian:bookworm-slim"
+  )
+  local img
+  for img in "${images[@]}"; do
+    log "Pre-pull image: ${img}"
+    retry_cmd 5 10 docker pull "$img" || die "Failed to pull ${img}. Check outbound DNS/443 to Docker Hub."
+  done
+}
+
 check_required_env() {
   local required=(
     MYSQL_ROOT_PASSWORD
@@ -116,6 +146,11 @@ docker info >/dev/null 2>&1 || die "Docker daemon is not reachable."
 docker compose version >/dev/null 2>&1 || die "Docker Compose plugin is not available."
 
 [[ -d .git ]] || die "This directory is not a git repository."
+
+CURRENT_PHASE="precheck.registry"
+log "Phase precheck.registry: pre-pull Docker base images with retries"
+prepull_base_images
+log "PASS: Docker base images pulled"
 
 CURRENT_PHASE="git.sync"
 log "Phase git.sync: fetch, switch main, pull latest"
