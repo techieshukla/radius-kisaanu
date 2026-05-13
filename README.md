@@ -109,9 +109,14 @@ Environment selection:
 - Sync verification overrides (optional): `SYNC_VERIFY_USER`, `SYNC_VERIFY_PASS`, `SYNC_VERIFY_PLAN`
 - Optional known-port bypass for precheck (comma-separated): `ALLOW_PORT_CONFLICTS`
   - Example: `ALLOW_PORT_CONFLICTS=8090 ./run.sh`
+- Port conflict check controls:
+  - `CHECK_TCP_PORT_CONFLICTS=0` (default, does not block on host Nginx 80/443 or admin UI TCP ports)
+  - `CHECK_UDP_PORT_CONFLICTS=1` (default, enforces RADIUS UDP 1812/1813 ownership)
 - Force docker to own configured ports by killing non-docker listeners before deploy:
   - default enabled: `FORCE_DOCKER_PORT_OWNERSHIP=1`
   - disable if needed: `FORCE_DOCKER_PORT_OWNERSHIP=0 ./run.sh`
+  - TCP reclaim is disabled by default: `RECLAIM_TCP_PORTS=0`
+  - UDP reclaim remains enabled by default: `RECLAIM_UDP_PORTS=1`
 - `run.sh` auto-stashes local tracked `.env`/`.env.local` changes before `git pull` and restores them after pull.
 
 ## Full Deploy Guides

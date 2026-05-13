@@ -60,34 +60,50 @@ check_port_conflicts() {
   local out
   local allow_csv="${ALLOW_PORT_CONFLICTS:-}"
   local allow_pattern=",${allow_csv},"
+  local check_tcp="${CHECK_TCP_PORT_CONFLICTS:-0}"
+  local check_udp="${CHECK_UDP_PORT_CONFLICTS:-1}"
 
-  for p in "${tcp_ports[@]}"; do
-    if [[ "$allow_pattern" == *",${p},"* ]]; then
-      log "INFO: Skipping conflict check for allowed TCP port ${p}"
-      continue
-    fi
-    out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
-    if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
-      printf "\nERROR: TCP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
-      die "Resolve conflict (or change port in ${ENV_FILE}) before deploy."
-    fi
-  done
+  if [[ "$check_tcp" == "1" ]]; then
+    for p in "${tcp_ports[@]}"; do
+      if [[ "$allow_pattern" == *",${p},"* ]]; then
+        log "INFO: Skipping conflict check for allowed TCP port ${p}"
+        continue
+      fi
+      out="$(ss -ltnp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
+      if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
+        printf "\nERROR: TCP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
+        die "Resolve conflict (or change port in ${ENV_FILE}) before deploy."
+      fi
+    done
+  else
+    log "INFO: TCP conflict checks disabled (CHECK_TCP_PORT_CONFLICTS=0)."
+  fi
 
-  for p in "${udp_ports[@]}"; do
-    if [[ "$allow_pattern" == *",${p},"* ]]; then
-      log "INFO: Skipping conflict check for allowed UDP port ${p}"
-      continue
-    fi
-    out="$(ss -lunp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
-    if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
-      printf "\nERROR: UDP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
-      die "Resolve conflict (or change RADIUS port in ${ENV_FILE}) before deploy."
-    fi
-  done
+  if [[ "$check_udp" == "1" ]]; then
+    for p in "${udp_ports[@]}"; do
+      if [[ "$allow_pattern" == *",${p},"* ]]; then
+        log "INFO: Skipping conflict check for allowed UDP port ${p}"
+        continue
+      fi
+      out="$(ss -lunp "( sport = :${p} )" 2>/dev/null | tail -n +2 || true)"
+      if [[ -n "$out" ]] && ! grep -q "docker-proxy" <<<"$out"; then
+        printf "\nERROR: UDP port %s is already in use by a non-docker process.\n%s\n" "$p" "$out" >&2
+        die "Resolve conflict (or change RADIUS port in ${ENV_FILE}) before deploy."
+      fi
+    done
+  else
+    log "INFO: UDP conflict checks disabled (CHECK_UDP_PORT_CONFLICTS=0)."
+  fi
 }
 
 kill_non_docker_port_owners() {
-  local ports=("${NGINX_HTTP_PORT}" "${DALORADIUS_HTTP_PORT}" "${PHPMYADMIN_HTTP_PORT}" "${RADIUS_AUTH_PORT}" "${RADIUS_ACCT_PORT}")
+  local ports=()
+  if [[ "${RECLAIM_TCP_PORTS:-0}" == "1" ]]; then
+    ports+=("${NGINX_HTTP_PORT}" "${DALORADIUS_HTTP_PORT}" "${PHPMYADMIN_HTTP_PORT}")
+  fi
+  if [[ "${RECLAIM_UDP_PORTS:-1}" == "1" ]]; then
+    ports+=("${RADIUS_AUTH_PORT}" "${RADIUS_ACCT_PORT}")
+  fi
   local p
   local pids
   local pid
