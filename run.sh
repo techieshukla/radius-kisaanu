@@ -281,19 +281,18 @@ check_radius_runtime() {
   for ((i=1; i<=retries; i++)); do
     psout="$("${COMPOSE[@]}" ps freeradius)"
     echo "$psout"
-    if echo "$psout" | grep -q "Up" && is_udp_port_listening "${RADIUS_AUTH_PORT}" && is_udp_port_listening "${RADIUS_ACCT_PORT}"; then
+    if echo "$psout" | grep -q "Up" && radius_logs_ready; then
       return 0
     fi
     log "INFO: freeradius runtime check retry (${i}/${retries})..."
     sleep "$delay"
   done
 
-  die "freeradius is not stable or UDP ports ${RADIUS_AUTH_PORT}/${RADIUS_ACCT_PORT} are not bound."
+  die "freeradius is not stable or did not report request readiness."
 }
 
-is_udp_port_listening() {
-  local port="$1"
-  ss -lun 2>/dev/null | awk '{print $5}' | grep -Eq "(^|[:\\]])${port}$"
+radius_logs_ready() {
+  "${COMPOSE[@]}" logs --tail=120 freeradius 2>/dev/null | grep -q "Ready to process requests"
 }
 
 wait_radius_ready() {
@@ -305,7 +304,7 @@ wait_radius_ready() {
   for ((i=1; i<=retries; i++)); do
     psout="$("${COMPOSE[@]}" ps freeradius)"
 
-    if echo "$psout" | grep -q "Up" && is_udp_port_listening "${RADIUS_AUTH_PORT}" && is_udp_port_listening "${RADIUS_ACCT_PORT}"; then
+    if echo "$psout" | grep -q "Up" && radius_logs_ready; then
       return 0
     fi
     log "INFO: waiting freeradius readiness (${i}/${retries})..."
