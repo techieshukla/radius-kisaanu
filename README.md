@@ -120,7 +120,7 @@ What it does:
 
 Use in Omada Controller:
 - External Portal URL:
-  - `http://3.111.219.106:8090/wifi.php`
+  - `https://wifi.kisaanu.com/wifi.php`
 - RADIUS Server:
   - Host: `3.111.219.106`
   - Auth: `1812`
