@@ -35,73 +35,26 @@ sudo apt-get update
 sudo apt-get install -y nginx certbot python3-certbot-nginx
 ```
 
-## 3. Recommended safe config method (no sed)
+## 3. Recommended config method
 
-Create a clean site file:
+Use the repo-managed installer. It supports both HTTP-only first setup and existing Let's Encrypt certificates:
 
 ```bash
-sudo tee /etc/nginx/sites-available/wifi.kisaanu.com >/dev/null <<'NGINX'
-server {
-    listen 80;
-    server_name wifi.kisaanu.com;
-
-    location ^~ /.well-known/acme-challenge/ {
-        root /var/www/certbot;
-        default_type text/plain;
-        try_files $uri =404;
-    }
-
-    location = / {
-        proxy_pass http://127.0.0.1:8090;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location = /dalo {
-        return 302 /daloradius/;
-    }
-
-    location = /phpmyadmin {
-        return 302 /phpmyadmin/;
-    }
-
-    location ~ /\.(?!well-known).* {
-        deny all;
-        return 404;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:8090;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /daloradius/ {
-        proxy_pass http://127.0.0.1:8091/daloradius/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-
-    location /phpmyadmin/ {
-        proxy_pass http://127.0.0.1:8092/;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
-    }
-}
-NGINX
+cd ~/radius-kisaanu
+git pull origin main
+sudo ./scripts/install-wifi-domain-nginx.sh
 ```
+
+This writes `/etc/nginx/sites-available/wifi.kisaanu.com`, enables it, removes the default site, validates with `nginx -t`, and reloads Nginx.
+
+If certificates do not exist yet, issue them after the HTTP config is installed:
+
+```bash
+sudo certbot --nginx -d wifi.kisaanu.com --redirect -m admin@kisaanu.com --agree-tos -n
+sudo ./scripts/install-wifi-domain-nginx.sh
+```
+
+The second installer run writes the HTTPS server block with the certificate paths.
 
 Create challenge webroot:
 

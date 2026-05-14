@@ -128,6 +128,27 @@ Exposed service values:
 | `MYSQL_VOLUME_NAME` | Persistent Docker volume name |
 | `PORTAL_ADMIN_USERS` | Optional comma-separated extra admins. `info@kisaanu.com` is always admin. |
 
+
+## Fix Host Nginx Pretty Routes
+
+If `https://wifi.kisaanu.com/login` or `https://wifi.kisaanu.com/register` returns `404` while `/wifi.php` works, the host Nginx site is stale and is not proxying extensionless routes to Docker. Install the repo-managed host Nginx config:
+
+```bash
+cd ~/radius-kisaanu
+git pull origin main
+sudo ./scripts/install-wifi-domain-nginx.sh
+```
+
+Then verify:
+
+```bash
+curl -sSI https://wifi.kisaanu.com/
+curl -sSI https://wifi.kisaanu.com/login
+curl -sSI https://wifi.kisaanu.com/register
+```
+
+The script keeps ACME challenge support, proxies `/`, `/login`, `/register`, `/dashboard`, `/profile`, and `/wifi.php` to the Docker portal on `127.0.0.1:8090`, and proxies admin tools to `8091` and `8092`.
+
 ## Server Deploy Commands
 
 Use these commands after pushing changes to GitHub.
