@@ -130,11 +130,6 @@ function lucide_icon(string $name): string
       <section class="layout">
         <div class="card">
           <nav class="nav" aria-label="Portal">
-            <a class="nav-link" href="/index.php">Home</a>
-            <a class="nav-link" href="/wifi.php">wifi.php</a>
-            <a class="nav-link" href="/register.php">Register</a>
-            <a class="nav-link" href="/login.php">Login</a>
-            <a class="nav-link active" href="/dashboard">Dashboard</a>
             <a class="nav-link" href="/profile">Profile</a>
             <form method="post" action="/login"><input type="hidden" name="formMode" value="logout" /><button class="logout-btn" type="submit">Logout</button></form>
           </nav>
