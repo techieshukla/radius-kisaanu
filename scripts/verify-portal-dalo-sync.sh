@@ -53,12 +53,26 @@ VALUES ('${USERNAME}', 'Cleartext-Password', ':=', '${PASSWORD}');
 DELETE FROM radusergroup WHERE username='${USERNAME}';
 INSERT INTO radusergroup (username, groupname, priority)
 VALUES ('${USERNAME}', '${PLAN_CODE}', 1);
+
+INSERT INTO userinfo
+  (username, firstname, lastname, email, mobilephone, address, city, state, country, notes, creationdate, creationby, updatedate, updateby, enableportallogin)
+SELECT '${USERNAME}', '${USERNAME}', '', IF('${USERNAME}' LIKE '%@%', '${USERNAME}', ''), '', '', 'Mallupur', 'Uttar Pradesh', 'India', 'Created by verify-portal-dalo-sync.sh', NOW(), 'verify-portal-dalo-sync.sh', NOW(), 'verify-portal-dalo-sync.sh', 1
+WHERE NOT EXISTS (SELECT 1 FROM userinfo WHERE username='${USERNAME}');
 SQL
 fi
 
-echo "Step 4: verify user is present in RADIUS tables (dalo reads these)..."
+echo "Step 3b: ensure daloRADIUS userinfo row exists for Users Listing..."
+sh -c "${COMPOSE} exec -T mysql mysql -uroot -p\"${MYSQL_ROOT_PASSWORD}\" radius" <<SQL
+INSERT INTO userinfo
+  (username, firstname, lastname, email, mobilephone, address, city, state, country, notes, creationdate, creationby, updatedate, updateby, enableportallogin)
+SELECT '${USERNAME}', '${USERNAME}', '', IF('${USERNAME}' LIKE '%@%', '${USERNAME}', ''), '', '', 'Mallupur', 'Uttar Pradesh', 'India', 'Created by verify-portal-dalo-sync.sh', NOW(), 'verify-portal-dalo-sync.sh', NOW(), 'verify-portal-dalo-sync.sh', 1
+WHERE NOT EXISTS (SELECT 1 FROM userinfo WHERE username='${USERNAME}');
+SQL
+
+echo "Step 4: verify user is present in RADIUS and daloRADIUS listing tables..."
 RADCHECK_ROW="$(sh -c "${COMPOSE} exec -T mysql mysql -N -B -uroot -p\"${MYSQL_ROOT_PASSWORD}\" -e \"SELECT COUNT(*) FROM radius.radcheck WHERE username='${USERNAME}' AND attribute='Cleartext-Password';\"")"
 RADUSERGROUP_ROW="$(sh -c "${COMPOSE} exec -T mysql mysql -N -B -uroot -p\"${MYSQL_ROOT_PASSWORD}\" -e \"SELECT COUNT(*) FROM radius.radusergroup WHERE username='${USERNAME}' AND groupname='${PLAN_CODE}';\"")"
+USERINFO_ROW="$(sh -c "${COMPOSE} exec -T mysql mysql -N -B -uroot -p\"${MYSQL_ROOT_PASSWORD}\" -e \"SELECT COUNT(*) FROM radius.userinfo WHERE username='${USERNAME}';\"")"
 
 if [ "${RADCHECK_ROW}" != "1" ]; then
   echo "FAIL: radcheck row not found for ${USERNAME}"
@@ -70,8 +84,14 @@ if [ "${RADUSERGROUP_ROW}" != "1" ]; then
   exit 1
 fi
 
+if [ "${USERINFO_ROW}" = "0" ]; then
+  echo "FAIL: userinfo row not found for ${USERNAME}; daloRADIUS Users Listing will not show this user"
+  exit 1
+fi
+
 echo "PASS: User exists in radcheck and radusergroup."
-echo "PASS: daloRADIUS and portal are synchronized via shared MySQL tables."
+echo "PASS: User exists in userinfo for daloRADIUS Users Listing."
+echo "PASS: daloRADIUS, FreeRADIUS, and portal are synchronized via shared MySQL tables."
 echo
 echo "You can now login in portal using:"
 echo "  username=${USERNAME}"

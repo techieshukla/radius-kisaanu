@@ -80,6 +80,7 @@ Normal users register from `/register`. The portal writes:
 
 - Radius password into `radcheck` as `Cleartext-Password`.
 - Radius plan/group into `radusergroup`.
+- daloRADIUS listing metadata into `userinfo`.
 - Profile details into `portal_registrations`.
 - Usage is read from `radacct` accounting rows.
 
@@ -165,6 +166,7 @@ docker compose --env-file .env up -d --build mysql
 ./scripts/setup-daloradius-db.sh
 ./scripts/repair-daloradius-admin.sh
 ./scripts/seed-default-admin-user.sh
+./scripts/sync-daloradius-userinfo.sh
 
 docker compose --env-file .env up -d --build php nginx freeradius daloradius phpmyadmin
 ./scripts/verify-portal-dalo-sync.sh
@@ -241,6 +243,7 @@ Verify admin exists in Radius tables:
 ```bash
 docker compose --env-file .env exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, attribute, value FROM radcheck WHERE username='info@kisaanu.com';"
 docker compose --env-file .env exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, groupname, priority FROM radusergroup WHERE username='info@kisaanu.com';"
+docker compose --env-file .env exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, firstname, lastname, email FROM userinfo WHERE username='info@kisaanu.com';"
 docker compose --env-file .env exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, full_name, village, ssid_name, plan_code FROM portal_registrations WHERE username='info@kisaanu.com' ORDER BY id DESC LIMIT 1;"
 ```
 
@@ -309,6 +312,16 @@ cd ~/radius-kisaanu
 ```
 
 This removes duplicate `administrator` rows, creates one deterministic operator, resets the login state, and grants all ACL permissions from `operators_acl_files`.
+
+If `Users Listing` opens but says `Nothing to display`, daloRADIUS is not missing RADIUS auth users; it is missing matching rows in its `userinfo` table. Backfill the rows:
+
+```bash
+cd ~/radius-kisaanu
+./scripts/sync-daloradius-userinfo.sh
+./scripts/verify-portal-dalo-sync.sh
+```
+
+The daloRADIUS list page joins `radcheck` to `userinfo`, so both tables must have the username.
 
 ## daloRADIUS and phpMyAdmin
 

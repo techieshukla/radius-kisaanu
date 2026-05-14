@@ -90,6 +90,8 @@ final class MysqlUserRepository implements UserRepositoryInterface
             );
             $insGroup->execute(['username' => $username, 'planCode' => $planCode]);
 
+            $this->ensureDaloUserInfo($username);
+
             $this->pdo->commit();
         } catch (Throwable $ex) {
             if ($this->pdo->inTransaction()) {
@@ -121,6 +123,14 @@ final class MysqlUserRepository implements UserRepositoryInterface
             'ssid_name' => (string)($profile['ssid_name'] ?? ''),
             'plan_code' => (string)($profile['plan_code'] ?? ''),
         ]);
+
+        $this->ensureDaloUserInfo(
+            (string)($profile['username'] ?? ''),
+            (string)($profile['full_name'] ?? ''),
+            (string)($profile['mobile_number'] ?? ''),
+            (string)($profile['address_text'] ?? ''),
+            (string)($profile['village'] ?? '')
+        );
     }
 
     public function getLatestRegistrationProfile(string $username): ?array
@@ -135,5 +145,69 @@ final class MysqlUserRepository implements UserRepositoryInterface
         $stmt->execute(['username' => $username]);
         $row = $stmt->fetch();
         return $row ?: null;
+    }
+
+    private function ensureDaloUserInfo(
+        string $username,
+        string $fullName = '',
+        string $mobileNumber = '',
+        string $address = '',
+        string $village = ''
+    ): void {
+        if ($username === '') {
+            return;
+        }
+
+        $fullName = trim($fullName);
+        $parts = preg_split('/\s+/', $fullName, 2) ?: [];
+        $firstName = (string)($parts[0] ?? '');
+        $lastName = (string)($parts[1] ?? '');
+        if ($firstName === '') {
+            $firstName = $username;
+        }
+
+        $email = str_contains($username, '@') ? $username : '';
+
+        $update = $this->pdo->prepare(
+            "UPDATE userinfo
+             SET firstname = CASE WHEN :firstname <> '' THEN :firstname ELSE firstname END,
+                 lastname = CASE WHEN :lastname <> '' THEN :lastname ELSE lastname END,
+                 email = CASE WHEN :email <> '' THEN :email ELSE email END,
+                 mobilephone = CASE WHEN :mobilephone <> '' THEN :mobilephone ELSE mobilephone END,
+                 address = CASE WHEN :address <> '' THEN :address ELSE address END,
+                 city = CASE WHEN :city <> '' THEN :city ELSE city END,
+                 updatedate = NOW(),
+                 updateby = 'portal'
+             WHERE username = :username"
+        );
+        $update->execute([
+            'username' => $username,
+            'firstname' => $firstName,
+            'lastname' => $lastName,
+            'email' => $email,
+            'mobilephone' => $mobileNumber,
+            'address' => $address,
+            'city' => $village,
+        ]);
+
+        if ($update->rowCount() > 0) {
+            return;
+        }
+
+        $insert = $this->pdo->prepare(
+            "INSERT INTO userinfo
+                (username, firstname, lastname, email, mobilephone, address, city, state, country, notes, creationdate, creationby, updatedate, updateby, enableportallogin)
+             VALUES
+                (:username, :firstname, :lastname, :email, :mobilephone, :address, :city, 'Uttar Pradesh', 'India', 'Created by Kisaanu Wi-Fi portal', NOW(), 'portal', NOW(), 'portal', 1)"
+        );
+        $insert->execute([
+            'username' => $username,
+            'firstname' => $firstName,
+            'lastname' => $lastName,
+            'email' => $email,
+            'mobilephone' => $mobileNumber,
+            'address' => $address,
+            'city' => $village,
+        ]);
     }
 }

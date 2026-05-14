@@ -54,3 +54,44 @@ VALUES
 DELETE FROM radusergroup WHERE username = 'info@kisaanu.com';
 INSERT INTO radusergroup (username, groupname, priority)
 VALUES ('info@kisaanu.com', 'FREE_8H_DAILY', 1);
+
+DELETE FROM userinfo
+WHERE username IN ('techieanurag@gmail.com', 'info@kisaanu.com');
+
+INSERT INTO userinfo
+  (username, firstname, lastname, email, mobilephone, address, city, state, country, notes, creationdate, creationby, updatedate, updateby, enableportallogin)
+VALUES
+  (
+    'techieanurag@gmail.com',
+    'Techie',
+    'Anurag',
+    'techieanurag@gmail.com',
+    '9876543210',
+    'Sample Address, Mallupur, Uttar Pradesh',
+    'Mallupur',
+    'Uttar Pradesh',
+    'India',
+    'Seeded default Wi-Fi user',
+    NOW(),
+    'mysql/init/04-seed-techieanurag.sql',
+    NOW(),
+    'mysql/init/04-seed-techieanurag.sql',
+    1
+  ),
+  (
+    'info@kisaanu.com',
+    'Kisaanu',
+    'Admin',
+    'info@kisaanu.com',
+    '9999999999',
+    'Kisaanu Admin Office, Mallupur, Uttar Pradesh',
+    'Mallupur',
+    'Uttar Pradesh',
+    'India',
+    'Seeded default Wi-Fi admin',
+    NOW(),
+    'mysql/init/04-seed-techieanurag.sql',
+    NOW(),
+    'mysql/init/04-seed-techieanurag.sql',
+    1
+  );

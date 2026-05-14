@@ -74,6 +74,12 @@ INSERT INTO portal_registrations
   (username, full_name, father_name, mother_name, village, mobile_number, aadhaar_number_masked, address_text, client_mac, ap_mac, ssid_name, plan_code)
 VALUES
   ('${SEED_USERNAME}', '${SEED_FULL_NAME}', '${SEED_FATHER_NAME}', '${SEED_MOTHER_NAME}', '${SEED_VILLAGE}', '${SEED_MOBILE}', '${SEED_AADHAAR_MASKED}', '${SEED_ADDRESS}', '', '', '${SEED_SSID}', '${SEED_PLAN}');
+
+DELETE FROM userinfo WHERE username = '${SEED_USERNAME}';
+INSERT INTO userinfo
+  (username, firstname, lastname, email, mobilephone, address, city, state, country, notes, creationdate, creationby, updatedate, updateby, enableportallogin)
+VALUES
+  ('${SEED_USERNAME}', SUBSTRING_INDEX('${SEED_FULL_NAME}', ' ', 1), TRIM(SUBSTRING('${SEED_FULL_NAME}', LENGTH(SUBSTRING_INDEX('${SEED_FULL_NAME}', ' ', 1)) + 1)), IF('${SEED_USERNAME}' LIKE '%@%', '${SEED_USERNAME}', ''), '${SEED_MOBILE}', '${SEED_ADDRESS}', '${SEED_VILLAGE}', 'Uttar Pradesh', 'India', 'Created by scripts/seed-techieanurag-user.sh', NOW(), 'seed-techieanurag-user.sh', NOW(), 'seed-techieanurag-user.sh', 1);
 SQL
 
 echo "Seed completed for ${SEED_USERNAME}."
@@ -82,3 +88,4 @@ echo "Verify:"
 eval "${COMPOSE} exec -T mysql mysql -uroot -p\"${ROOT_PASS}\" \"${DB_NAME}\" -e \"SELECT username,attribute,value FROM radcheck WHERE username='${SEED_USERNAME}';\""
 eval "${COMPOSE} exec -T mysql mysql -uroot -p\"${ROOT_PASS}\" \"${DB_NAME}\" -e \"SELECT username,groupname,priority FROM radusergroup WHERE username='${SEED_USERNAME}';\""
 eval "${COMPOSE} exec -T mysql mysql -uroot -p\"${ROOT_PASS}\" \"${DB_NAME}\" -e \"SELECT username,full_name,village,ssid_name,plan_code,created_at FROM portal_registrations WHERE username='${SEED_USERNAME}' ORDER BY id DESC LIMIT 1;\""
+eval "${COMPOSE} exec -T mysql mysql -uroot -p\"${ROOT_PASS}\" \"${DB_NAME}\" -e \"SELECT username,firstname,lastname,email,mobilephone,city FROM userinfo WHERE username='${SEED_USERNAME}' ORDER BY id DESC LIMIT 1;\""
