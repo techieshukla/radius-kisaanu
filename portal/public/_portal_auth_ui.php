@@ -147,7 +147,12 @@
         </div>
 
         <aside class="card register-aside">
-          <figure class="aside-banner"><img src="https://kisaanu.com/media/JayKisaanu-Village-Banner-Final.png?v=20260513-2" alt="Mallupur network advisory banner" loading="lazy" /></figure>
+          <figure class="aside-banner">
+            <picture>
+              <source srcset="/media/JayKisaanu-Village-Banner-Final-1600.webp" type="image/webp" />
+              <img src="/media/JayKisaanu-Village-Banner-Final-1600.png" alt="Mallupur network advisory banner" loading="lazy" width="1600" height="800" />
+            </picture>
+          </figure>
           <h3 class="section-title">Network Use Guidelines</h3>
           <div class="facts" style="margin-top:0;">
             <div class="fact"><strong>Security &amp; Privacy</strong><span>This connection is mapped to your registered device MAC. Keep your login details private and do not share OTP/password.</span></div>
