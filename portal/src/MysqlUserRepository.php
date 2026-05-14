@@ -103,13 +103,16 @@ final class MysqlUserRepository implements UserRepositoryInterface
     {
         $stmt = $this->pdo->prepare(
             "INSERT INTO portal_registrations
-                (username, full_name, mobile_number, aadhaar_number_masked, address_text, client_mac, ap_mac, ssid_name, plan_code)
+                (username, full_name, father_name, mother_name, village, mobile_number, aadhaar_number_masked, address_text, client_mac, ap_mac, ssid_name, plan_code)
              VALUES
-                (:username, :full_name, :mobile_number, :aadhaar_number_masked, :address_text, :client_mac, :ap_mac, :ssid_name, :plan_code)"
+                (:username, :full_name, :father_name, :mother_name, :village, :mobile_number, :aadhaar_number_masked, :address_text, :client_mac, :ap_mac, :ssid_name, :plan_code)"
         );
         $stmt->execute([
             'username' => (string)($profile['username'] ?? ''),
             'full_name' => (string)($profile['full_name'] ?? ''),
+            'father_name' => (string)($profile['father_name'] ?? ''),
+            'mother_name' => (string)($profile['mother_name'] ?? ''),
+            'village' => (string)($profile['village'] ?? ''),
             'mobile_number' => (string)($profile['mobile_number'] ?? ''),
             'aadhaar_number_masked' => (string)($profile['aadhaar_number_masked'] ?? ''),
             'address_text' => (string)($profile['address_text'] ?? ''),
@@ -123,7 +126,7 @@ final class MysqlUserRepository implements UserRepositoryInterface
     public function getLatestRegistrationProfile(string $username): ?array
     {
         $stmt = $this->pdo->prepare(
-            "SELECT username, full_name, mobile_number, aadhaar_number_masked, address_text, client_mac, ap_mac, ssid_name, plan_code, created_at
+            "SELECT username, full_name, father_name, mother_name, village, mobile_number, aadhaar_number_masked, address_text, client_mac, ap_mac, ssid_name, plan_code, created_at
              FROM portal_registrations
              WHERE username = :username
              ORDER BY id DESC

@@ -44,6 +44,8 @@ Check:
 ```bash
 docker compose ps
 curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT}/wifi.php
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT}/login
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT}/register
 ```
 
 ## 4. Verify from Wi-Fi client

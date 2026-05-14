@@ -123,6 +123,8 @@ For existing MySQL volume or upgrades:
 
 ```bash
 curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT}/wifi.php | head -n 5
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT}/login | head -n 5
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT}/register | head -n 5
 curl -sSI http://127.0.0.1:${DALORADIUS_HTTP_PORT}/daloradius/app/operators/index.php | head -n 6
 curl -sSI http://127.0.0.1:${PHPMYADMIN_HTTP_PORT}/ | head -n 5
 ```

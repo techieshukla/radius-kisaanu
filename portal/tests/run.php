@@ -35,6 +35,11 @@ final class InMemoryRepo implements UserRepositoryInterface
         return $this->plans[$username] ?? null;
     }
 
+    public function isUserRegistered(string $username): bool
+    {
+        return array_key_exists($username, $this->users);
+    }
+
     public function getTodayUsedSeconds(string $username): int
     {
         return $this->used[$username] ?? 0;
@@ -54,6 +59,17 @@ final class InMemoryRepo implements UserRepositoryInterface
     public function saveRegistrationProfile(array $profile): void
     {
         $this->profiles[] = $profile;
+    }
+
+    public function getLatestRegistrationProfile(string $username): ?array
+    {
+        for ($i = count($this->profiles) - 1; $i >= 0; $i--) {
+            $row = $this->profiles[$i];
+            if ((string)($row['username'] ?? '') === $username) {
+                return $row;
+            }
+        }
+        return null;
     }
 }
 
@@ -88,7 +104,11 @@ $r4 = $service->register('u2', 'pin2', 'FREE_2H_DAILY');
 assertTrue(($r4['ok'] ?? false) === true, 'register/upsert succeeds');
 assertTrue(($repo->users['u2'] ?? '') === 'pin2', 'register stores password');
 
-$r5 = $service->register('u3', 'pin3', 'INVALID_PLAN');
-assertTrue(($r5['ok'] ?? true) === false, 'register fails on unknown plan');
+$r5 = $service->register('u2', 'pin2x', 'FREE_2H_DAILY');
+assertTrue(($r5['ok'] ?? true) === false, 'register fails for already-registered user');
+assertTrue(($r5['already_registered'] ?? false) === true, 'already-registered flag is returned');
+
+$r6 = $service->register('u3', 'pin3', 'INVALID_PLAN');
+assertTrue(($r6['ok'] ?? true) === false, 'register fails on unknown plan');
 
 echo "All tests passed.\n";

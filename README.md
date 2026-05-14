@@ -7,10 +7,10 @@
 ![PHP](https://img.shields.io/badge/PHP-8.3-777BB4)
 ![Nginx](https://img.shields.io/badge/Nginx-stable-009639)
 
-Production-focused captive portal backend for public Wi-Fi with:
+Production-focused public Wi-Fi + enterprise RADIUS portal backend with:
 - FreeRADIUS auth/accounting
 - MySQL user/plan/session data
-- PHP captive portal (register + login)
+- PHP portal app (`/wifi.php`, `/login`, `/register`, `/dashboard`, `/profile`)
 - daloRADIUS admin GUI
 - phpMyAdmin DB GUI
 - Omada ER605 + EAP225 Outdoor integration support
@@ -40,8 +40,8 @@ Production-focused captive portal backend for public Wi-Fi with:
 
 - Plan-based free usage (`2h/4h/6h/8h`) via `plan_profiles`
 - Daily quota enforcement from `radacct`
-- Registration flow with profile capture (`portal_registrations`)
-- Omada forward-auth bridge (`target`, `clientMac`, `apMac`, `ssidName`, `radioId`)
+- Registration flow with profile capture (`portal_registrations`) including father/mother/village
+- Omada/RADIUS-compatible context parsing (`target`, `clientMac`, `apMac|ap`, `ssidName|ssid`, `radioId`)
 - daloRADIUS PHP 8.x compatibility and permission fixes
 - Bind-IP controls for all exposed services via `.env`
 
@@ -75,6 +75,7 @@ docker compose --env-file .env.local ps
 ```bash
 ENV_FILE=.env.local ./scripts/migrate-portal-registration-table.sh
 ENV_FILE=.env.local ./scripts/setup-daloradius-db.sh
+ENV_FILE=.env.local ./scripts/seed-techieanurag-user.sh
 ```
 
 4. Health checks:
@@ -145,7 +146,7 @@ Use in Omada Controller (production):
   - daloRADIUS: `https://wifi.kisaanu.com/daloradius/`
   - phpMyAdmin: `https://wifi.kisaanu.com/phpmyadmin/`
 - RADIUS Server:
-  - Host: `3.111.219.106`
+  - Host: `13.205.154.39`
   - Auth: `1812`
   - Acct: `1813`
   - Secret: `.env -> RADIUS_SHARED_SECRET`
@@ -185,9 +186,23 @@ Portal endpoint quick check:
 ENV_FILE=.env.local ./scripts/check-captive-stack.sh
 ```
 
+Portal app routes quick check:
+```bash
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/login | head -n 5
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/register | head -n 5
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/wifi.php | head -n 5
+```
+
 RADIUS local check:
 ```bash
 docker compose exec -T freeradius sh -lc "radtest demo-user demo-pass 127.0.0.1 0 ${RADIUS_SHARED_SECRET:-change_shared_secret}"
+```
+
+Seeded test user check:
+```bash
+docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, attribute, value FROM radcheck WHERE username='techieanurag@gmail.com';"
+docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, groupname, priority FROM radusergroup WHERE username='techieanurag@gmail.com';"
+docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, full_name, village, ssid_name, plan_code FROM portal_registrations WHERE username='techieanurag@gmail.com' ORDER BY id DESC LIMIT 1;"
 ```
 
 ## CI

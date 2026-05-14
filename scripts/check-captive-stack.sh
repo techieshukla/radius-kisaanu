@@ -13,6 +13,8 @@ sh -c "${COMPOSE} ps"
 echo "-- Portal --"
 curl -sSI "http://127.0.0.1:${PORTAL_PORT}/" | head -n 5
 curl -sSI "http://127.0.0.1:${PORTAL_PORT}/wifi.php" | head -n 5
+curl -sSI "http://127.0.0.1:${PORTAL_PORT}/login" | head -n 5
+curl -sSI "http://127.0.0.1:${PORTAL_PORT}/register" | head -n 5
 
 echo "-- daloRADIUS --"
 curl -sSI "http://127.0.0.1:${DALO_PORT}/daloradius/app/operators/index.php" | head -n 6

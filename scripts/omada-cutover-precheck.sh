@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 set -eu
+ENV_FILE="${ENV_FILE:-.env}"
+COMPOSE="docker compose --env-file ${ENV_FILE}"
 
 echo "== Omada Cutover Precheck =="
 
@@ -13,18 +15,20 @@ for v in $required_vars; do
 done
 
 echo "Checking compose services..."
-docker compose ps
+sh -c "${COMPOSE} ps"
 
 echo "Checking local HTTP endpoints..."
 curl -sSI "http://127.0.0.1:${NGINX_HTTP_PORT}/wifi.php" | head -n 5
+curl -sSI "http://127.0.0.1:${NGINX_HTTP_PORT}/login" | head -n 5
+curl -sSI "http://127.0.0.1:${NGINX_HTTP_PORT}/register" | head -n 5
 curl -sSI "http://127.0.0.1:${DALORADIUS_HTTP_PORT:-8091}/daloradius/app/operators/index.php" | head -n 6
 curl -sSI "http://127.0.0.1:${PHPMYADMIN_HTTP_PORT:-8092}/" | head -n 5
 
 echo "Checking RADIUS listener ports in compose mapping..."
-docker compose ps freeradius
+sh -c "${COMPOSE} ps freeradius"
 
 echo "Running local radtest..."
-docker compose exec -T freeradius sh -lc "radtest demo-user demo-pass 127.0.0.1 0 ${RADIUS_SHARED_SECRET}" || {
+sh -c "${COMPOSE} exec -T freeradius sh -lc \"radtest demo-user demo-pass 127.0.0.1 0 ${RADIUS_SHARED_SECRET}\"" || {
   echo "WARN: radtest failed. Check secret and freeradius logs."
   exit 1
 }
