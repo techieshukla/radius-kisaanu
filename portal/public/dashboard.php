@@ -16,6 +16,7 @@ if ($radiusSsid === '') {
 }
 $planCode = (string)($dashboard['plan_code'] ?? ($profile['plan_code'] ?? ''));
 $usagePercent = $minutesTotal > 0 ? min(100, (int)round(($minutesUsed / $minutesTotal) * 100)) : 0;
+$isAdmin = is_admin_user($radiusUsername);
 
 function lucide_icon(string $name): string
 {
@@ -29,6 +30,8 @@ function lucide_icon(string $name): string
         'route' => '<circle cx="6" cy="19" r="3"/><path d="M9 19h8a3 3 0 0 0 0-6H7a3 3 0 0 1 0-6h8"/><circle cx="18" cy="5" r="3"/>',
         'login' => '<path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/>',
         'gauge' => '<path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/>',
+        'database' => '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
+        'settings' => '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.51a2 2 0 0 1 1-1.72l.15-.1a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/>',
     ];
     $body = $icons[$name] ?? $icons['wifi'];
     return '<svg class="lucide" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . $body . '</svg>';
@@ -79,6 +82,15 @@ function lucide_icon(string $name): string
       .metric strong { font-size:11px; color:var(--ink-soft); letter-spacing:.08em; text-transform:uppercase; }
       .metric span { overflow-wrap:anywhere; font-family:"Lexend", system-ui, sans-serif; font-size:clamp(20px, 4vw, 28px); line-height:1.08; font-weight:800; letter-spacing:-.035em; color:#0e2d1d; }
       .metric small { color:var(--muted); line-height:1.45; }
+      .info-section { margin-top:18px; }
+      .info-section:first-of-type { margin-top:0; }
+      .info-title { display:flex; align-items:center; gap:10px; margin:0 0 12px; font-family:"Lexend", system-ui, sans-serif; font-size:20px; line-height:1.1; letter-spacing:-.025em; color:#0f3320; }
+      .plain-grid { display:grid; gap:12px; grid-template-columns:1fr; }
+      .plain-item { border-radius:20px; padding:16px; background:linear-gradient(180deg,#fff,rgba(246,250,242,.92)); border:1px solid rgba(17,81,43,.1); }
+      .plain-item strong { display:block; margin-bottom:8px; color:var(--ink-soft); font:800 11px/1 "Lexend", system-ui, sans-serif; letter-spacing:.08em; text-transform:uppercase; }
+      .plain-item span { display:block; overflow-wrap:anywhere; font-family:"Lexend", system-ui, sans-serif; color:#0e2d1d; font-size:20px; line-height:1.18; font-weight:800; letter-spacing:-.025em; }
+      .admin-actions { display:grid; gap:10px; margin-top:18px; }
+      .admin-link { display:flex; align-items:center; gap:10px; border-radius:18px; padding:14px 16px; background:#fff; border:1px solid rgba(17,81,43,.12); color:var(--brand-deep); text-decoration:none; font-family:"Lexend", system-ui, sans-serif; font-weight:800; }
       .usage-grid { display:grid; gap:14px; margin-top:18px; }
       .usage { border-radius:24px; padding:18px; background:linear-gradient(135deg, rgba(31,122,67,.09), rgba(240,185,75,.14)); border:1px solid rgba(17,81,43,.1); }
       .usage-head { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:14px; font-weight:800; }
@@ -102,7 +114,7 @@ function lucide_icon(string $name): string
       .aside-banner { margin:0 0 14px; }
       .aside-banner img { width:100%; display:block; height:auto; object-fit:contain; border-radius:14px; border:1px solid rgba(17,81,43,.14); background:#fff; }
       form { margin:0; }
-      @media (min-width:680px){ .hero-grid{grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr);} .hero-media{justify-self:end;} .metrics{grid-template-columns:repeat(2, minmax(0,1fr));} .usage-grid{grid-template-columns:1.15fr .85fr;} }
+      @media (min-width:680px){ .hero-grid{grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr);} .hero-media{justify-self:end;} .metrics{grid-template-columns:repeat(2, minmax(0,1fr));} .usage-grid{grid-template-columns:1.15fr .85fr;} .plain-grid{grid-template-columns:repeat(2,minmax(0,1fr));} .admin-actions{grid-template-columns:1fr 1fr;} }
       @media (min-width:980px){ .layout{grid-template-columns:minmax(0,7fr) minmax(300px,5fr); align-items:start;} .card{padding:28px;} .aside{position:sticky; top:14px;} .metrics{grid-template-columns:repeat(3, minmax(0,1fr));} }
     </style>
   </head>
@@ -138,39 +150,49 @@ function lucide_icon(string $name): string
 
           <div class="dashboard-head">
             <div class="dashboard-kicker"><?php echo lucide_icon('login'); ?> Enterprise Radius Access</div>
-            <h2 class="section-title">Radius Login</h2>
-            <p class="section-copy">After registration, use this username and password for the Kisaanu enterprise Wi-Fi login. Keep the password private.</p>
+            <h2 class="section-title">Wi-Fi Account Dashboard</h2>
+            <p class="section-copy">Your SSID details, usage status, and Radius login information are shown below in plain text.</p>
           </div>
 
-          <div class="metrics">
-            <div class="metric"><div class="metric-icon"><?php echo lucide_icon('user'); ?></div><strong>Wi-Fi Username</strong><span><?php echo e($radiusUsername); ?></span><small>Usually your registered mobile number.</small></div>
-            <div class="metric"><div class="metric-icon"><?php echo lucide_icon('package'); ?></div><strong>Package</strong><span><?php echo e($planCode !== '' ? $planCode : 'Not assigned'); ?></span><small>Synced through radusergroup.</small></div>
-            <div class="metric"><div class="metric-icon"><?php echo lucide_icon('wifi'); ?></div><strong>SSID</strong><span><?php echo e($radiusSsid); ?></span><small>Select this network on your phone.</small></div>
+          <div class="info-section">
+            <h3 class="info-title"><span class="metric-icon"><?php echo lucide_icon('wifi'); ?></span> SSID Information</h3>
+            <div class="plain-grid">
+              <div class="plain-item"><strong>SSID Name</strong><span><?php echo e($radiusSsid); ?></span></div>
+              <div class="plain-item"><strong>Connection Type</strong><span>Enterprise Radius Login</span></div>
+            </div>
           </div>
 
-          <div class="usage-grid">
+          <div class="info-section">
+            <h3 class="info-title"><span class="metric-icon"><?php echo lucide_icon('gauge'); ?></span> Usage Information</h3>
             <div class="usage">
-              <div class="usage-head">
-                <span class="usage-title"><span class="metric-icon"><?php echo lucide_icon('gauge'); ?></span> Today&apos;s Usage</span>
-                <span class="usage-value"><?php echo e($usagePercent . '% used'); ?></span>
-              </div>
+              <div class="usage-head"><span class="usage-title">Today&apos;s Usage</span><span class="usage-value"><?php echo e($usagePercent . '% used'); ?></span></div>
               <div class="bar" aria-label="Usage progress"><span></span></div>
-              <div class="mini-grid">
-                <div class="mini-stat"><strong><?php echo e((string)$minutesUsed); ?></strong><span>Minutes used</span></div>
-                <div class="mini-stat"><strong><?php echo e((string)$minutesRemaining); ?></strong><span>Minutes remaining</span></div>
-              </div>
             </div>
-
-            <div class="usage">
-              <div class="usage-head">
-                <span class="usage-title"><span class="metric-icon"><?php echo lucide_icon('key'); ?></span> Wi-Fi Password</span>
-              </div>
-              <div class="password-row">
-                <div class="secret" id="radiusPassword" data-secret="<?php echo e($radiusPassword); ?>"><?php echo e($radiusPassword !== '' ? str_repeat('*', min(12, max(8, strlen($radiusPassword)))) : 'Not available'); ?></div>
-                <button class="toggle" type="button" data-toggle-secret="radiusPassword"><?php echo lucide_icon('key'); ?> <span class="toggle-label">Show</span></button>
-              </div>
+            <div class="plain-grid" style="margin-top:12px;">
+              <div class="plain-item"><strong>Minutes Used</strong><span><?php echo e((string)$minutesUsed); ?></span></div>
+              <div class="plain-item"><strong>Minutes Remaining</strong><span><?php echo e((string)$minutesRemaining); ?></span></div>
+              <div class="plain-item"><strong>Total Daily Minutes</strong><span><?php echo e((string)$minutesTotal); ?></span></div>
+              <div class="plain-item"><strong>Package</strong><span><?php echo e($planCode !== '' ? $planCode : 'Not assigned'); ?></span></div>
             </div>
           </div>
+
+          <div class="info-section">
+            <h3 class="info-title"><span class="metric-icon"><?php echo lucide_icon('key'); ?></span> Login Information</h3>
+            <div class="plain-grid">
+              <div class="plain-item"><strong>Radius Username</strong><span><?php echo e($radiusUsername); ?></span></div>
+              <div class="plain-item"><strong>Radius Password</strong><span><?php echo e($radiusPassword !== '' ? $radiusPassword : 'Not available'); ?></span></div>
+            </div>
+          </div>
+
+          <?php if ($isAdmin): ?>
+            <div class="info-section">
+              <h3 class="info-title"><span class="metric-icon"><?php echo lucide_icon('settings'); ?></span> Admin Tools</h3>
+              <div class="admin-actions">
+                <a class="admin-link" href="/daloradius/"><?php echo lucide_icon('settings'); ?> daloRADIUS</a>
+                <a class="admin-link" href="/phpmyadmin/"><?php echo lucide_icon('database'); ?> phpMyAdmin</a>
+              </div>
+            </div>
+          <?php endif; ?>
         </div>
 
         <aside class="card aside">

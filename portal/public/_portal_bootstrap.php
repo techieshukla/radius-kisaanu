@@ -15,6 +15,12 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 'UTF-8'); }
 function is_logged_in(): bool { return isset($_SESSION['wifi_user']) && $_SESSION['wifi_user'] !== ''; }
 function portal_redirect(string $path): never { header('Location: ' . $path, true, 302); exit; }
+function is_admin_user(string $username): bool
+{
+    $adminUsers = getenv('PORTAL_ADMIN_USERS') ?: 'village-admin,techieanurag@gmail.com';
+    $items = array_map('trim', explode(',', $adminUsers));
+    return in_array($username, $items, true);
+}
 
 $repo = new MysqlUserRepository(Database::connect());
 $logger = new JsonLogger();

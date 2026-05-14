@@ -84,15 +84,6 @@
 
       <section class="register-layout">
         <div class="card">
-          <div class="quick-links">
-            <a href="/index.php">Home</a>
-            <a href="/wifi.php">wifi.php</a>
-            <a href="/register.php">Register</a>
-            <a href="/login.php">Login</a>
-            <a href="/dashboard">Dashboard</a>
-            <a href="/profile">Profile</a>
-          </div>
-
           <?php if ($statusMessage !== ''): ?>
             <div class="banner <?php echo e($statusType === 'danger' ? 'error' : 'info'); ?>"><?php echo e($statusMessage); ?></div>
           <?php endif; ?>
