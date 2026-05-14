@@ -22,7 +22,12 @@ DB_NAME="${RADIUS_DB_NAME:-${MYSQL_DATABASE:-radius}}"
 
 sh -c "${COMPOSE} exec -T daloradius sh -lc \"php -v >/dev/null\""
 
-sh -c "${COMPOSE} exec -T daloradius sh -lc \"cat /var/www/html/daloradius/contrib/db/mariadb-daloradius.sql\"" | \
-  sh -c "${COMPOSE} exec -T mysql sh -lc \"mysql -uroot -p\\\"${MYSQL_ROOT_PASSWORD}\\\" \\\"${DB_NAME}\\\"\"" || true
+SCHEMA_READY="$(sh -c "${COMPOSE} exec -T mysql sh -lc \"mysql -N -B -uroot -p\\\"${MYSQL_ROOT_PASSWORD}\\\" \\\"${DB_NAME}\\\" -e \\\"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${DB_NAME}' AND table_name IN ('operators','operators_acl_files','userinfo');\\\"\"")"
 
-echo "daloRADIUS schema load attempted (mariadb-daloradius.sql)."
+if [ "$SCHEMA_READY" = "3" ]; then
+  echo "daloRADIUS schema already present; skipping schema import."
+else
+  sh -c "${COMPOSE} exec -T daloradius sh -lc \"cat /var/www/html/daloradius/contrib/db/mariadb-daloradius.sql\"" | \
+    sh -c "${COMPOSE} exec -T mysql sh -lc \"mysql -uroot -p\\\"${MYSQL_ROOT_PASSWORD}\\\" \\\"${DB_NAME}\\\"\""
+  echo "daloRADIUS schema imported from mariadb-daloradius.sql."
+fi
