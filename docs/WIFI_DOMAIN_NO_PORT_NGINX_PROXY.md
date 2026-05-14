@@ -1,12 +1,12 @@
 # Expose `wifi.kisaanu.com` Without Port Using Host Nginx + Certbot
 
 This is the final production flow to serve all UIs on one domain:
-- `https://wifi.kisaanu.com/wifi.php`
+- `https://wifi.kisaanu.com/`
 - `https://wifi.kisaanu.com/daloradius/`
 - `https://wifi.kisaanu.com/phpmyadmin/`
 
 while Docker app stays on:
-- `http://127.0.0.1:8090/wifi.php`
+- `http://127.0.0.1:8090/`
 
 ## 0. Context
 
@@ -52,7 +52,12 @@ server {
     }
 
     location = / {
-        return 302 /wifi.php;
+        proxy_pass http://127.0.0.1:8090;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
     location = /dalo {
@@ -131,9 +136,10 @@ sudo certbot --nginx -d wifi.kisaanu.com --redirect -m admin@kisaanu.com --agree
 ## 6. Validate end-to-end
 
 ```bash
-curl -sSI http://wifi.kisaanu.com/wifi.php | head -n 5
-curl -sSI https://wifi.kisaanu.com/wifi.php | head -n 5
+curl -sSI http://wifi.kisaanu.com/ | head -n 5
 curl -sSI https://wifi.kisaanu.com/ | head -n 5
+curl -sSI https://wifi.kisaanu.com/login | head -n 5
+curl -sSI https://wifi.kisaanu.com/register | head -n 5
 curl -sSI https://wifi.kisaanu.com/daloradius/ | head -n 6
 curl -sSI https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
 ```
@@ -145,7 +151,7 @@ Expected:
 ## 7. Final Omada portal URL
 
 Set in Omada:
-- `https://wifi.kisaanu.com/wifi.php`
+- `https://wifi.kisaanu.com/`
 
 Admin URLs:
 - `https://wifi.kisaanu.com/daloradius/`
@@ -180,7 +186,7 @@ sudo ufw status
 5. Test public reachability from outside:
 ```bash
 curl -sSI http://wifi.kisaanu.com/.well-known/acme-challenge/test | head -n 5
-curl -sSI http://wifi.kisaanu.com/wifi.php | head -n 5
+curl -sSI http://wifi.kisaanu.com/ | head -n 5
 ```
 
 6. Retry certbot with debug:
@@ -221,7 +227,7 @@ sudo systemctl status nginx --no-pager
 
 ### Verify docker app is reachable locally
 ```bash
-curl -sSI http://127.0.0.1:8090/wifi.php | head -n 5
+curl -sSI http://127.0.0.1:8090/ | head -n 5
 curl -sSI http://127.0.0.1:8091/daloradius/app/operators/index.php | head -n 6
 curl -sSI http://127.0.0.1:8092/ | head -n 5
 ```

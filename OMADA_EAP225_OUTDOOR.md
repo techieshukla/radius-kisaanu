@@ -56,7 +56,7 @@ Update passwords before production.
 - Recommended production target values in this project:
   - RADIUS server IP: `13.205.154.39`
   - SSID: `MALLUPUR-KISAANU-WIFI`
-  - External portal URL: `https://wifi.kisaanu.com/wifi.php`
+  - External portal URL: `https://wifi.kisaanu.com/`
 - For AWS/cloud deployments, keep `OMADA_TARGET_CALLBACK_ENABLED=0` so auth does not depend on private `target` callback paths.
 - If using Omada's built-in portal redirection ports (`8880/8843`), ensure it can reach this PHP portal endpoint.
 - Keep AP/controller time synced (NTP), otherwise daily quota behavior around midnight can be inconsistent.

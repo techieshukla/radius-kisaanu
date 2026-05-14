@@ -44,7 +44,7 @@ In Omada Controller:
    - Acct: `1813`
    - Secret: `.env -> RADIUS_SHARED_SECRET`
 4. Configure External Portal URL:
-   - `https://wifi.kisaanu.com/wifi.php`
+   - `https://wifi.kisaanu.com/`
 5. Set SSID:
    - `MALLUPUR-KISAANU-WIFI`
 6. For AWS/cloud deployment, use RADIUS-only mode:

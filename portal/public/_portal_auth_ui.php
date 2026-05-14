@@ -97,7 +97,7 @@
           </div>
 
           <div class="auth-panel" data-auth-panel="register" <?php echo e($activeTab === 'register' ? '' : 'hidden'); ?>>
-            <form method="post" action="/register.php" class="grid register-form">
+            <form method="post" action="/register" class="grid register-form">
               <input type="hidden" name="formMode" value="register" />
               <div class="two-up">
                 <div class="field"><label for="fullName">Full name / पूरा नाम</label><input id="fullName" name="fullName" type="text" autocomplete="name" maxlength="150" required /></div>
@@ -136,7 +136,7 @@
           </div>
 
           <div class="auth-panel" data-auth-panel="login" <?php echo e($activeTab === 'login' ? '' : 'hidden'); ?>>
-            <form id="wifiLoginForm" method="post" action="/login.php" class="grid login-form">
+            <form id="wifiLoginForm" method="post" action="/login" class="grid login-form">
               <input type="hidden" name="formMode" value="login" />
               <div class="field"><label for="loginUsername">Username</label><input id="loginUsername" name="username" type="text" autocomplete="username" placeholder="Enter mobile or username" required /></div>
               <div class="field"><label for="loginPassword">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" placeholder="Enter password" required /></div>

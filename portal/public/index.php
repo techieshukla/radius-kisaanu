@@ -55,8 +55,8 @@ function e(string $value): string { return htmlspecialchars($value, ENT_QUOTES, 
             <h1>Mallupur Adhunik Gram Seva Public Wi-Fi</h1>
             <p>Community Wi-Fi access for Mallupur residents. Register once to create your Radius username and password, then use those credentials on the enterprise Wi-Fi network.</p>
             <div class="actions">
-              <a class="btn primary" href="/register.php">Register</a>
-              <a class="btn secondary" href="/login.php">Login</a>
+              <a class="btn primary" href="/register">Register</a>
+              <a class="btn secondary" href="/login">Login</a>
             </div>
           </div>
           <div class="hero-media" aria-hidden="true"><div class="hero-frame"><img class="hero-image" src="https://kisaanu.com/media/public-wifi-mallupur-hero.gif" alt="Mallupur public Wi-Fi illustration" decoding="async" /></div></div>

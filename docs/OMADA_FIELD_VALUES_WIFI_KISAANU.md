@@ -24,7 +24,7 @@ Notes:
 
 ## 2. External Portal Settings (Omada)
 - Portal Type: `External Portal Server`
-- Portal URL (final): `https://wifi.kisaanu.com/wifi.php`
+- Portal URL (final): `https://wifi.kisaanu.com/`
 - Redirect/Landing URL after login: `https://kisaanu.com`
 
 RADIUS-only mode note for cloud deployments:
@@ -55,7 +55,7 @@ Allow inbound to EC2:
 Run on server:
 
 ```bash
-curl -sSI http://127.0.0.1:8090/wifi.php | head -n 5
+curl -sSI http://127.0.0.1:8090/ | head -n 5
 curl -sSI http://127.0.0.1:8091/daloradius/app/operators/index.php | head -n 6
 curl -sSI http://127.0.0.1:8092/ | head -n 5
 ./scripts/omada-cutover-precheck.sh
@@ -64,7 +64,7 @@ curl -sSI http://127.0.0.1:8092/ | head -n 5
 Public check:
 
 ```bash
-curl -sSI https://wifi.kisaanu.com/wifi.php | head -n 5
+curl -sSI https://wifi.kisaanu.com/ | head -n 5
 curl -sSI https://wifi.kisaanu.com/daloradius/ | head -n 6
 curl -sSI https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
 ```

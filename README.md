@@ -13,8 +13,8 @@ Kisaanu Mallupur public Wi-Fi portal and enterprise RADIUS stack. The portal let
 
 1. User opens `https://wifi.kisaanu.com/`.
 2. Landing page explains the Mallupur Wi-Fi project and shows two actions: `Register` and `Login`.
-3. `Register` opens `/register.php`, captures user details, creates/updates the Radius username/password, assigns a Wi-Fi package, stores the profile, and redirects to `/dashboard`.
-4. `Login` opens `/login.php`, checks the Radius username/password from MySQL, verifies daily quota, and redirects to `/dashboard`.
+3. `Register` opens `/register`, captures user details, creates/updates the Radius username/password, assigns a Wi-Fi package, stores the profile, and redirects to `/dashboard`.
+4. `Login` opens `/login`, checks the Radius username/password from MySQL, verifies daily quota, and redirects to `/dashboard`.
 5. `Dashboard` shows SSID information, usage information, package, Radius username, and Radius password in plain text.
 6. `Profile` shows the registration details plus Radius information.
 7. Admin users see daloRADIUS and phpMyAdmin links on the dashboard.
@@ -27,8 +27,8 @@ This is not using Omada captive-portal target callback for cloud authorization. 
 |---|---|
 | `/` | Wi-Fi project landing page |
 | `/wifi.php` | Same portal entry style for compatibility |
-| `/register.php` or `/register` | Registration form |
-| `/login.php` or `/login` | Login form |
+| `/register` | Registration form |
+| `/login` | Login form |
 | `/dashboard` | Authenticated user dashboard |
 | `/profile` | Authenticated user profile |
 | `/daloradius/` | Admin RADIUS GUI |
@@ -76,7 +76,7 @@ Fresh MySQL initialization seeds these users automatically from `mysql/init/`.
 
 ## Normal User Behavior
 
-Normal users register from `/register.php`. The portal writes:
+Normal users register from `/register`. The portal writes:
 
 - Radius password into `radcheck` as `Cleartext-Password`.
 - Radius plan/group into `radusergroup`.
@@ -209,8 +209,8 @@ Check portal routes locally from the server:
 
 ```bash
 curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/
-curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/register.php
-curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/login.php
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/register
+curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/login
 curl -sSI http://127.0.0.1:${NGINX_HTTP_PORT:-8090}/wifi.php
 ```
 
@@ -261,8 +261,8 @@ Use these production values in Omada:
 | RADIUS accounting port | `1813` |
 | RADIUS shared secret | `.env -> RADIUS_SHARED_SECRET` |
 | Portal domain | `https://wifi.kisaanu.com/` |
-| Register | `https://wifi.kisaanu.com/register.php` |
-| Login | `https://wifi.kisaanu.com/login.php` |
+| Register | `https://wifi.kisaanu.com/register` |
+| Login | `https://wifi.kisaanu.com/login` |
 
 For this flow, users manually register/login on the website and then use Radius credentials in the Wi-Fi enterprise login prompt. Do not depend on private callback targets such as `192.168.0.100:22080` from AWS.
 
