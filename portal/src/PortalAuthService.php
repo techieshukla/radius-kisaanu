@@ -67,26 +67,24 @@ final class PortalAuthService
             return ['ok' => false, 'message' => 'Mobile and PIN are required for registration.'];
         }
 
-        if ($this->repo->isUserRegistered($username)) {
-            return [
-                'ok' => false,
-                'already_registered' => true,
-                'message' => 'User already registered. Please login with your Wi-Fi username and password.',
-            ];
-        }
-
         $availablePlans = $this->repo->getActivePlans();
         $allowedPlanCodes = array_column($availablePlans, 'plan_code');
         if (!in_array($planCode, $allowedPlanCodes, true)) {
             return ['ok' => false, 'message' => 'Selected plan is not available.'];
         }
 
+        $alreadyRegistered = $this->repo->isUserRegistered($username);
         $this->repo->upsertUserWithPlan($username, $password, $planCode);
         $this->logger->info('auth.registered', [
             'username' => $username,
             'plan_code' => $planCode,
+            'already_registered' => $alreadyRegistered,
         ]);
-        return ['ok' => true];
+        return [
+            'ok' => true,
+            'already_registered' => $alreadyRegistered,
+            'message' => $alreadyRegistered ? 'Registration updated successfully.' : 'Registration successful.',
+        ];
     }
 
     public function storeProfile(array $profile): void

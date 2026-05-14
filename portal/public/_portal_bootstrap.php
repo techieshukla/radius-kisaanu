@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $_SESSION['wifi_user'] = $mobileNumber;
                 $_SESSION['flash_type'] = 'success';
-                $_SESSION['flash_message'] = 'Registration successful.';
+                $_SESSION['flash_message'] = (string)($register['message'] ?? 'Registration successful.');
                 portal_redirect('/dashboard');
             }
         }

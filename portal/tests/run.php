@@ -105,7 +105,8 @@ assertTrue(($r4['ok'] ?? false) === true, 'register/upsert succeeds');
 assertTrue(($repo->users['u2'] ?? '') === 'pin2', 'register stores password');
 
 $r5 = $service->register('u2', 'pin2x', 'FREE_2H_DAILY');
-assertTrue(($r5['ok'] ?? true) === false, 'register fails for already-registered user');
+assertTrue(($r5['ok'] ?? false) === true, 'register updates already-registered user');
+assertTrue(($repo->users['u2'] ?? '') === 'pin2x', 'already-registered user password is updated');
 assertTrue(($r5['already_registered'] ?? false) === true, 'already-registered flag is returned');
 
 $r6 = $service->register('u3', 'pin3', 'INVALID_PLAN');
