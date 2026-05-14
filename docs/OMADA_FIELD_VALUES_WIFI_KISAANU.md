@@ -4,16 +4,17 @@ Use these exact values in Omada Controller for EAP225 Outdoor captive portal and
 
 ## Assumptions
 - Portal host: `wifi.kisaanu.com`
-- Server Elastic IP: `3.111.219.106`
+- Server Elastic IP: `13.205.154.39`
+- SSID: `MALLUPUR-KISAANU-WIFI`
 - External Nginx serves `wifi.kisaanu.com` on `80/443`
 - Internal Docker services remain on `8090/8091/8092`
 - RADIUS is exposed from same host
 
 ## 1. RADIUS Settings (Omada)
 - Authentication Type: `External RADIUS Server`
-- RADIUS Authentication Server: `3.111.219.106`
+- RADIUS Authentication Server: `13.205.154.39`
 - Authentication Port: `1812`
-- RADIUS Accounting Server: `3.111.219.106`
+- RADIUS Accounting Server: `13.205.154.39`
 - Accounting Port: `1813`
 - Shared Secret: `<same as .env RADIUS_SHARED_SECRET>`
 
@@ -34,14 +35,14 @@ RADIUS-only mode note for cloud deployments:
 Ensure Omada preserves/passes portal query parameters. This backend supports:
 - `target`
 - `clientMac`
-- `apMac`
-- `ssidName`
+- `apMac` or `ap`
+- `ssidName` or `ssid`
 - `radioId`
-- `continueUrl` (optional)
+- `continueUrl` or `redirect` or `origUrl` (optional)
 
 ## 4. DNS and Security Group Checklist
 For `wifi.kisaanu.com`:
-- DNS A record -> `3.111.219.106`
+- DNS A record -> `13.205.154.39`
 
 Allow inbound to EC2:
 - `80/tcp`

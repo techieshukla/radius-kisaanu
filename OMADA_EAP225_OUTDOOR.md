@@ -16,7 +16,7 @@ In this repo:
 - `TCP 443` (HTTPS portal, recommended in production)
 
 In this repo:
-- Portal is exposed via Nginx on `${NGINX_HTTP_PORT}` (default `8080`)
+- Portal is exposed via Nginx on `${NGINX_HTTP_PORT}` (default `8090`)
 - For production captive portal, place reverse proxy/TLS in front and publish on `80/443`.
 
 ## 3. Omada Controller / AP Management Ports
@@ -52,5 +52,10 @@ Update passwords before production.
 
 ## 7. Important Notes
 - EAP225 Outdoor can work in different portal modes; configure Omada Authentication type to External RADIUS where required.
+- Recommended production target values in this project:
+  - RADIUS server IP: `13.205.154.39`
+  - SSID: `MALLUPUR-KISAANU-WIFI`
+  - External portal URL: `https://wifi.kisaanu.com/wifi.php`
+- For AWS/cloud deployments, keep `OMADA_TARGET_CALLBACK_ENABLED=0` so auth does not depend on private `target` callback paths.
 - If using Omada's built-in portal redirection ports (`8880/8843`), ensure it can reach this PHP portal endpoint.
 - Keep AP/controller time synced (NTP), otherwise daily quota behavior around midnight can be inconsistent.

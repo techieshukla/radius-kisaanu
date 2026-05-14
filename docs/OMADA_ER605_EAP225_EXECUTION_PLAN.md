@@ -39,20 +39,26 @@ In Omada Controller:
 1. Adopt ER605 + EAP225 Outdoor.
 2. Create Guest/Public SSID.
 3. Configure RADIUS:
-   - Server IP: `3.111.219.106`
+   - Server IP: `13.205.154.39`
    - Auth: `1812`
    - Acct: `1813`
    - Secret: `.env -> RADIUS_SHARED_SECRET`
 4. Configure External Portal URL:
-   - `http://3.111.219.106/wifi.php` (or `http://3.111.219.106:8090/wifi.php`)
+   - `https://wifi.kisaanu.com/wifi.php`
+5. Set SSID:
+   - `MALLUPUR-KISAANU-WIFI`
+6. For AWS/cloud deployment, use RADIUS-only mode:
+   - Keep `OMADA_TARGET_CALLBACK_ENABLED=0` in portal `.env`
+   - Do not rely on private `target=192.168.x.x` callback reachability from EC2
 
 ## 5. Captive Parameter Mapping (Implemented in code)
 Portal endpoint supports Omada query params:
 - `target`
 - `clientMac`
-- `apMac`
-- `ssidName`
+- `apMac` or `ap`
+- `ssidName` or `ssid`
 - `radioId`
+- `continueUrl` or `redirect` or `origUrl`
 
 These are already handled by `portal/public/wifi.php`.
 
