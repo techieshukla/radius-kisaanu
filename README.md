@@ -147,7 +147,7 @@ curl -sSI https://wifi.kisaanu.com/login
 curl -sSI https://wifi.kisaanu.com/register
 ```
 
-The script keeps ACME challenge support, proxies `/`, `/login`, `/register`, `/dashboard`, `/profile`, and `/wifi.php` to the Docker portal on `127.0.0.1:8090`, and proxies admin tools to `8091` and `8092`.
+The script keeps ACME challenge support, proxies `/`, `/login`, `/register`, `/dashboard`, `/profile`, and `/wifi.php` to the Docker portal on `127.0.0.1:8090`, redirects `/daloradius/` to the daloRADIUS operator entry page, and protects `/phpmyadmin/` with a same-domain referer gate before proxying to `8092`.
 
 ## Server Deploy Commands
 
@@ -295,6 +295,13 @@ Admin URLs on the Wi-Fi domain:
 - `https://wifi.kisaanu.com/phpmyadmin/`
 
 Only admin users should see these links in the dashboard. Restrict direct access with firewall or reverse-proxy rules where possible.
+
+## Admin Tool Access Rules
+
+- `https://wifi.kisaanu.com/daloradius/` redirects to `https://wifi.kisaanu.com/daloradius/app/operators/index.php` because the daloRADIUS directory root can return `403`.
+- `https://wifi.kisaanu.com/phpmyadmin/` is blocked with `403` when the request has no `Referer` from `wifi.kisaanu.com`.
+- The phpMyAdmin link should be opened from the portal dashboard admin section so the browser sends a same-domain referer.
+- Referer checks are not strong authentication. Keep phpMyAdmin credentials strong and restrict the host with firewall/security-group rules where possible.
 
 ## One-Command Deploy
 

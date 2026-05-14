@@ -45,7 +45,7 @@ git pull origin main
 sudo ./scripts/install-wifi-domain-nginx.sh
 ```
 
-This writes `/etc/nginx/sites-available/wifi.kisaanu.com`, enables it, removes the default site, validates with `nginx -t`, and reloads Nginx.
+This writes `/etc/nginx/sites-available/wifi.kisaanu.com`, enables it, removes the default site, validates with `nginx -t`, reloads Nginx, redirects `/daloradius/` to the daloRADIUS operator entry page, and blocks `/phpmyadmin/` when the request has no same-domain referer.
 
 If certificates do not exist yet, issue them after the HTTP config is installed:
 
@@ -95,6 +95,7 @@ curl -sSI https://wifi.kisaanu.com/login | head -n 5
 curl -sSI https://wifi.kisaanu.com/register | head -n 5
 curl -sSI https://wifi.kisaanu.com/daloradius/ | head -n 6
 curl -sSI https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
+curl -sSI -e https://wifi.kisaanu.com/dashboard https://wifi.kisaanu.com/phpmyadmin/ | head -n 5
 ```
 
 Expected:

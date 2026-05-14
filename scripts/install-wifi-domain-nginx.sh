@@ -17,16 +17,24 @@ fi
 write_common_locations() {
   cat <<NGINX
     location = /dalo {
-        return 302 /daloradius/;
+        return 302 /daloradius/app/operators/index.php;
     }
 
     location = /phpmyadmin {
+        valid_referers ${DOMAIN};
+        if (\$invalid_referer) {
+            return 403;
+        }
         return 302 /phpmyadmin/;
     }
 
     location ~ /\.(?!well-known).* {
         deny all;
         return 404;
+    }
+
+    location = /daloradius/ {
+        return 302 /daloradius/app/operators/index.php;
     }
 
     location /daloradius/ {
@@ -39,6 +47,10 @@ write_common_locations() {
     }
 
     location /phpmyadmin/ {
+        valid_referers ${DOMAIN};
+        if (\$invalid_referer) {
+            return 403;
+        }
         proxy_pass ${PHPMYADMIN_UPSTREAM}/;
         proxy_http_version 1.1;
         proxy_set_header Host \$host;
