@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Contracts.php';
+require_once __DIR__ . '/Config.php';
 
 final class OmadaClient
 {
@@ -12,11 +13,19 @@ final class OmadaClient
 
     public function sendAuth(string $target, string $username, string $password, string $clientMac, int $sessionTimeout): array
     {
+        if (!Config::omadaTargetCallbackEnabled()) {
+            return [
+                'ok' => true,
+                'skipped' => true,
+                'message' => 'RADIUS-only mode enabled. Omada target callback skipped.',
+            ];
+        }
+
         if ($target === '' || $clientMac === '') {
             return [
-                'ok' => false,
+                'ok' => true,
                 'skipped' => true,
-                'message' => 'Captive parameters missing, so gateway enable step was skipped.',
+                'message' => 'Captive parameters missing, so Omada target callback was skipped.',
             ];
         }
 

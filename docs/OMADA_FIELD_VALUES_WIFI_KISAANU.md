@@ -26,6 +26,10 @@ Notes:
 - Portal URL (final): `https://wifi.kisaanu.com/wifi.php`
 - Redirect/Landing URL after login: `https://kisaanu.com`
 
+RADIUS-only mode note for cloud deployments:
+- Set `OMADA_TARGET_CALLBACK_ENABLED=0` in portal `.env` so login does not depend on private `target` callback reachability.
+- This is required when Omada `target` points to LAN/private IP (for example `192.168.x.x`) and portal is hosted on AWS.
+
 ## 3. Query Parameters
 Ensure Omada preserves/passes portal query parameters. This backend supports:
 - `target`

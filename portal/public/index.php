@@ -27,10 +27,10 @@ function safe_continue_url(string $value): string
 
 $target = $_GET['target'] ?? ($_POST['target'] ?? '');
 $clientMac = $_GET['clientMac'] ?? ($_POST['clientMac'] ?? '');
-$apMac = $_GET['apMac'] ?? ($_POST['apMac'] ?? '');
-$ssidName = $_GET['ssidName'] ?? ($_POST['ssidName'] ?? '');
+$apMac = $_GET['apMac'] ?? ($_POST['apMac'] ?? ($_GET['ap'] ?? ($_POST['ap'] ?? '')));
+$ssidName = $_GET['ssidName'] ?? ($_POST['ssidName'] ?? ($_GET['ssid'] ?? ($_POST['ssid'] ?? '')));
 $radioId = $_GET['radioId'] ?? ($_POST['radioId'] ?? '');
-$continueUrl = safe_continue_url((string)($_GET['continueUrl'] ?? ($_POST['continueUrl'] ?? ($_GET['redirect'] ?? ($_POST['redirect'] ?? '')))));
+$continueUrl = safe_continue_url((string)($_GET['continueUrl'] ?? ($_POST['continueUrl'] ?? ($_GET['redirect'] ?? ($_POST['redirect'] ?? ($_GET['origUrl'] ?? ($_POST['origUrl'] ?? '')))))));
 
 $statusType = '';
 $statusMessage = '';
@@ -131,6 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $statusMessage = $authResult['message'] ?? 'Unable to validate user credentials.';
         } else {
             $remainingMinutes = (int)floor(((int)$authResult['remaining_seconds']) / 60);
+            $authModeLabel = Config::omadaTargetCallbackEnabled() ? 'Target-callback mode' : 'RADIUS-only mode';
 
             $omadaResult = $omadaClient->sendAuth(
                 $target,
@@ -144,8 +145,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($omadaResult['skipped'] ?? false) {
                     $statusType = 'success';
                     $statusMessage = sprintf(
-                        'Authenticated locally (%s). Remaining daily quota: ~%d minutes. %s',
+                        'Authenticated locally (%s, %s). Remaining daily quota: ~%d minutes. %s',
                         $authResult['plan_code'],
+                        $authModeLabel,
                         $remainingMinutes,
                         $omadaResult['message']
                     );
@@ -156,8 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $statusType = 'success';
                 $statusMessage = sprintf(
-                    'Authenticated (%s). Remaining daily quota: ~%d minutes. %s',
+                    'Authenticated (%s, %s). Remaining daily quota: ~%d minutes. %s',
                     $authResult['plan_code'],
+                    $authModeLabel,
                     $remainingMinutes,
                     $omadaResult['message']
                 );

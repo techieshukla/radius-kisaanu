@@ -170,6 +170,7 @@ RADIUS/DB:
 
 Portal/infra:
 - `OMADA_CONTROLLER_IP`
+- `OMADA_TARGET_CALLBACK_ENABLED` (`0` = RADIUS-only mode, `1` = call `http://target/portal/auth`)
 - `TZ`
 
 ## Testing
@@ -217,6 +218,19 @@ Create/update labels in GitHub repo:
   - `./scripts/secure-admin-ports-ufw.sh <admin-cidr>`
 - Fix outbound Docker registry connectivity on Ubuntu servers:
   - `sudo ./scripts/fix-docker-outbound.sh`
+
+## Docker Hygiene (Safe Cleanup)
+
+Use these commands to remove only dangling images (`<none>:<none>`) without touching running containers:
+
+```bash
+docker images -f dangling=true
+docker image prune -f
+docker images -f dangling=true
+docker system df
+```
+
+For server maintenance, run the same sequence on the server checkout after deploy.
 
 ## Optional: Isolated Omada Controller Compose
 

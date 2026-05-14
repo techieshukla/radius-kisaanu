@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 final class Config
 {
+    public static function envFlag(string $name, bool $default = false): bool
+    {
+        $raw = getenv($name);
+        if ($raw === false || $raw === '') {
+            return $default;
+        }
+        $normalized = strtolower(trim((string)$raw));
+        return in_array($normalized, ['1', 'true', 'yes', 'on'], true);
+    }
+
     public static function dbHost(): string
     {
         return getenv('DB_HOST') ?: 'mysql';
@@ -53,5 +63,11 @@ final class Config
     {
         $path = '/var/www/html/logs/portal.log';
         return is_writable(dirname($path)) ? $path : '/tmp/portal.log';
+    }
+
+    public static function omadaTargetCallbackEnabled(): bool
+    {
+        // Default OFF for cloud-hosted RADIUS-only deployments.
+        return self::envFlag('OMADA_TARGET_CALLBACK_ENABLED', false);
     }
 }

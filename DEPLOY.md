@@ -81,3 +81,18 @@ In Omada Controller:
 - RADIUS auth failure:
   - Verify secret and NAS client IP/subnet
   - Test from server: `docker compose exec -T freeradius sh -lc "radtest demo-user demo-pass 127.0.0.1 0 ${RADIUS_SHARED_SECRET:-change_shared_secret}"`
+
+## 8. Docker dangling-image cleanup (safe)
+
+Run this on local or server when repeated builds leave `<none>:<none>` images:
+
+```bash
+docker images -f dangling=true --format '{{.ID}} {{.Repository}}:{{.Tag}} {{.Size}} {{.CreatedSince}}'
+docker image prune -f
+docker images -f dangling=true
+docker system df
+```
+
+Notes:
+- `docker image prune -f` removes only dangling images, not tagged images in use by services.
+- Do not use `docker system prune -a` in production unless you explicitly want aggressive cleanup.

@@ -255,3 +255,16 @@ Quick checks:
 docker compose ps
 docker compose exec -T freeradius sh -lc "radtest demo-user demo-pass 127.0.0.1 0 ${RADIUS_SHARED_SECRET}"
 ```
+
+## 14. Cleanup dangling Docker images on EC2 (safe)
+
+After frequent `docker compose up -d --build`, clean only dangling layers:
+
+```bash
+docker images -f dangling=true --format '{{.ID}} {{.Repository}}:{{.Tag}} {{.Size}} {{.CreatedSince}}'
+docker image prune -f
+docker images -f dangling=true
+docker system df
+```
+
+This is safe for running services because it only removes untagged/dangling images.
