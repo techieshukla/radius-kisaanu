@@ -6,6 +6,8 @@ interface UserRepositoryInterface
 {
     public function getCleartextPassword(string $username): ?string;
 
+    public function isUserRegistered(string $username): bool;
+
     public function getUserPlan(string $username): ?array;
 
     public function getTodayUsedSeconds(string $username): int;
@@ -15,6 +17,8 @@ interface UserRepositoryInterface
     public function upsertUserWithPlan(string $username, string $password, string $planCode): void;
 
     public function saveRegistrationProfile(array $profile): void;
+
+    public function getLatestRegistrationProfile(string $username): ?array;
 }
 
 interface LoggerInterface

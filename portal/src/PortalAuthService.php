@@ -67,6 +67,14 @@ final class PortalAuthService
             return ['ok' => false, 'message' => 'Mobile and PIN are required for registration.'];
         }
 
+        if ($this->repo->isUserRegistered($username)) {
+            return [
+                'ok' => false,
+                'already_registered' => true,
+                'message' => 'User already registered. Please login with your Wi-Fi username and password.',
+            ];
+        }
+
         $availablePlans = $this->repo->getActivePlans();
         $allowedPlanCodes = array_column($availablePlans, 'plan_code');
         if (!in_array($planCode, $allowedPlanCodes, true)) {
@@ -84,5 +92,27 @@ final class PortalAuthService
     public function storeProfile(array $profile): void
     {
         $this->repo->saveRegistrationProfile($profile);
+    }
+
+    public function getDashboardData(string $username): array
+    {
+        $password = $this->repo->getCleartextPassword($username);
+        $plan = $this->repo->getUserPlan($username);
+        $used = $this->repo->getTodayUsedSeconds($username);
+        $profile = $this->repo->getLatestRegistrationProfile($username);
+
+        $limit = (int)($plan['seconds_per_day'] ?? 0);
+        $remaining = max(0, $limit - $used);
+
+        return [
+            'username' => $username,
+            'password' => $password ?? '',
+            'plan_code' => (string)($plan['plan_code'] ?? ''),
+            'seconds_per_day' => $limit,
+            'used_seconds' => $used,
+            'remaining_seconds' => $remaining,
+            'ssid_name' => (string)($profile['ssid_name'] ?? ''),
+            'profile' => $profile ?: [],
+        ];
     }
 }

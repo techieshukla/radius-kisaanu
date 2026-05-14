@@ -20,6 +20,15 @@ final class MysqlUserRepository implements UserRepositoryInterface
         return $row ? (string)$row['value'] : null;
     }
 
+    public function isUserRegistered(string $username): bool
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT 1 FROM radcheck WHERE username = :username AND attribute = 'Cleartext-Password' LIMIT 1"
+        );
+        $stmt->execute(['username' => $username]);
+        return (bool)$stmt->fetchColumn();
+    }
+
     public function getUserPlan(string $username): ?array
     {
         $stmt = $this->pdo->prepare(
@@ -109,5 +118,19 @@ final class MysqlUserRepository implements UserRepositoryInterface
             'ssid_name' => (string)($profile['ssid_name'] ?? ''),
             'plan_code' => (string)($profile['plan_code'] ?? ''),
         ]);
+    }
+
+    public function getLatestRegistrationProfile(string $username): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            "SELECT username, full_name, mobile_number, aadhaar_number_masked, address_text, client_mac, ap_mac, ssid_name, plan_code, created_at
+             FROM portal_registrations
+             WHERE username = :username
+             ORDER BY id DESC
+             LIMIT 1"
+        );
+        $stmt->execute(['username' => $username]);
+        $row = $stmt->fetch();
+        return $row ?: null;
     }
 }
