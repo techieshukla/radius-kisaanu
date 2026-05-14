@@ -1,8 +1,14 @@
 #!/usr/bin/env sh
 set -eu
 
-ENV_FILE="${ENV_FILE:-.env}"
-COMPOSE="docker compose --env-file ${ENV_FILE}"
+SCRIPT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+REPO_ROOT="$(CDPATH= cd -- "${SCRIPT_DIR}/.." && pwd)"
+ENV_FILE_INPUT="${ENV_FILE:-.env}"
+case "$ENV_FILE_INPUT" in
+  /*) ENV_FILE_RESOLVED="$ENV_FILE_INPUT" ;;
+  *) ENV_FILE_RESOLVED="${REPO_ROOT}/${ENV_FILE_INPUT}" ;;
+esac
+COMPOSE="docker compose --env-file ${ENV_FILE_RESOLVED}"
 SEED_USERNAME="${SEED_USERNAME:-techieanurag@gmail.com}"
 SEED_PASSWORD="${SEED_PASSWORD:-1234567890}"
 SEED_PLAN="${SEED_PLAN:-FREE_8H_DAILY}"
@@ -15,10 +21,10 @@ SEED_AADHAAR_MASKED="${SEED_AADHAAR_MASKED:-XXXXXXXX9012}"
 SEED_ADDRESS="${SEED_ADDRESS:-Sample Address, Mallupur, Uttar Pradesh}"
 SEED_SSID="${SEED_SSID:-MALLUPUR-KISAANU-WIFI}"
 
-if [ -f "$ENV_FILE" ]; then
+if [ -f "$ENV_FILE_RESOLVED" ]; then
   set -a
   # shellcheck disable=SC1090
-  . "$ENV_FILE"
+  . "$ENV_FILE_RESOLVED"
   set +a
 fi
 
