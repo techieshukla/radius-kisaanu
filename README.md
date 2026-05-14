@@ -163,6 +163,7 @@ docker compose --env-file .env up -d --build mysql
 ./scripts/sync-mysql-env-users.sh
 ./scripts/migrate-portal-registration-table.sh
 ./scripts/setup-daloradius-db.sh
+./scripts/repair-daloradius-admin.sh
 ./scripts/seed-default-admin-user.sh
 
 docker compose --env-file .env up -d --build php nginx freeradius daloradius phpmyadmin
@@ -286,6 +287,28 @@ Use these production values in Omada:
 | Login | `https://wifi.kisaanu.com/login` |
 
 For this flow, users manually register/login on the website and then use Radius credentials in the Wi-Fi enterprise login prompt. Do not depend on private callback targets such as `192.168.0.100:22080` from AWS.
+
+
+## daloRADIUS Operator Login
+
+The daloRADIUS operator login is separate from the Wi-Fi portal login.
+
+Default daloRADIUS operator credentials managed by this repo:
+
+```text
+Username: administrator
+Password: Kisaanu123765
+```
+
+If daloRADIUS shows `Cannot log in` with reasons about wrong password, an already logged-in administrator, or more than one `administrator` row, repair the operator table:
+
+```bash
+cd ~/radius-kisaanu
+./scripts/setup-daloradius-db.sh
+./scripts/repair-daloradius-admin.sh
+```
+
+This removes duplicate `administrator` rows, creates one deterministic operator, resets the login state, and grants all ACL permissions from `operators_acl_files`.
 
 ## daloRADIUS and phpMyAdmin
 

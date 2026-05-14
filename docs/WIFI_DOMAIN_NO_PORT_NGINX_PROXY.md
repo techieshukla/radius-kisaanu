@@ -190,3 +190,21 @@ curl -sSI http://127.0.0.1:8092/ | head -n 5
 ```bash
 sudo certbot renew --dry-run
 ```
+
+
+## daloRADIUS Login Repair
+
+If the operator login says `Cannot log in`, repair the daloRADIUS administrator row:
+
+```bash
+cd ~/radius-kisaanu
+./scripts/setup-daloradius-db.sh
+./scripts/repair-daloradius-admin.sh
+```
+
+Then login at `https://wifi.kisaanu.com/daloradius/app/operators/index.php` with:
+
+```text
+Username: administrator
+Password: Kisaanu123765
+```
