@@ -59,14 +59,17 @@ SET @exists := (
 SET @sql := IF(@exists = 0, 'ALTER TABLE portal_registrations ADD COLUMN village VARCHAR(150) DEFAULT '''' AFTER mother_name', 'SELECT 1');
 PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
+DELETE FROM radcheck
+WHERE username = '${SEED_USERNAME}'
+  AND attribute = 'Cleartext-Password';
 INSERT INTO radcheck (username, attribute, op, value)
-VALUES ('${SEED_USERNAME}', 'Cleartext-Password', ':=', '${SEED_PASSWORD}')
-ON DUPLICATE KEY UPDATE value = VALUES(value);
+VALUES ('${SEED_USERNAME}', 'Cleartext-Password', ':=', '${SEED_PASSWORD}');
 
 DELETE FROM radusergroup WHERE username = '${SEED_USERNAME}';
 INSERT INTO radusergroup (username, groupname, priority)
 VALUES ('${SEED_USERNAME}', '${SEED_PLAN}', 1);
 
+DELETE FROM portal_registrations WHERE username = '${SEED_USERNAME}';
 INSERT INTO portal_registrations
   (username, full_name, father_name, mother_name, village, mobile_number, aadhaar_number_masked, address_text, client_mac, ap_mac, ssid_name, plan_code)
 VALUES

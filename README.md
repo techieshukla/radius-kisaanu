@@ -75,6 +75,7 @@ docker compose --env-file .env.local ps
 ```bash
 ENV_FILE=.env.local ./scripts/migrate-portal-registration-table.sh
 ENV_FILE=.env.local ./scripts/setup-daloradius-db.sh
+ENV_FILE=.env.local ./scripts/seed-default-admin-user.sh
 ENV_FILE=.env.local ./scripts/seed-techieanurag-user.sh
 ```
 
@@ -200,6 +201,8 @@ docker compose exec -T freeradius sh -lc "radtest demo-user demo-pass 127.0.0.1 
 
 Seeded test user check:
 ```bash
+docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, attribute, value FROM radcheck WHERE username='info@kisaanu.com';"
+docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, groupname, priority FROM radusergroup WHERE username='info@kisaanu.com';"
 docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, attribute, value FROM radcheck WHERE username='techieanurag@gmail.com';"
 docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, groupname, priority FROM radusergroup WHERE username='techieanurag@gmail.com';"
 docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD}" radius -e "SELECT username, full_name, village, ssid_name, plan_code FROM portal_registrations WHERE username='techieanurag@gmail.com' ORDER BY id DESC LIMIT 1;"

@@ -46,6 +46,7 @@ Allow only trusted source addresses:
 The bootstrap SQL seeds these users:
 - `demo-user / demo-pass` -> `FREE_2H_DAILY`
 - `village-user / VillageUser@123` -> `FREE_4H_DAILY`
+- `info@kisaanu.com / Kisaanu123765` -> `FREE_8H_DAILY` (default portal admin)
 - `village-admin / VillageAdmin@123` -> `FREE_8H_DAILY`
 
 Update passwords before production.

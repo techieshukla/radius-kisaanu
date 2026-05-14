@@ -146,25 +146,33 @@ VALUES
 ON DUPLICATE KEY UPDATE display_name = VALUES(display_name), seconds_per_day = VALUES(seconds_per_day);
 
 -- Group-level replies so time plans can be attached per user via radusergroup.
+DELETE FROM radgroupreply
+WHERE groupname IN ('FREE_2H_DAILY', 'FREE_4H_DAILY', 'FREE_6H_DAILY', 'FREE_8H_DAILY')
+  AND attribute = 'Session-Timeout';
 INSERT INTO radgroupreply (groupname, attribute, op, value)
 VALUES
   ('FREE_2H_DAILY', 'Session-Timeout', ':=', '7200'),
   ('FREE_4H_DAILY', 'Session-Timeout', ':=', '14400'),
   ('FREE_6H_DAILY', 'Session-Timeout', ':=', '21600'),
-  ('FREE_8H_DAILY', 'Session-Timeout', ':=', '28800')
-ON DUPLICATE KEY UPDATE value = VALUES(value);
+  ('FREE_8H_DAILY', 'Session-Timeout', ':=', '28800');
 
 -- Default users for initial setup and testing.
+DELETE FROM radcheck
+WHERE username IN ('demo-user', 'info@kisaanu.com', 'village-admin', 'village-user')
+  AND attribute = 'Cleartext-Password';
 INSERT INTO radcheck (username, attribute, op, value)
 VALUES
   ('demo-user', 'Cleartext-Password', ':=', 'demo-pass'),
+  ('info@kisaanu.com', 'Cleartext-Password', ':=', 'Kisaanu123765'),
   ('village-admin', 'Cleartext-Password', ':=', 'VillageAdmin@123'),
-  ('village-user', 'Cleartext-Password', ':=', 'VillageUser@123')
-ON DUPLICATE KEY UPDATE attribute = VALUES(attribute), op = VALUES(op), value = VALUES(value);
+  ('village-user', 'Cleartext-Password', ':=', 'VillageUser@123');
 
+DELETE FROM radusergroup
+WHERE username IN ('demo-user', 'info@kisaanu.com', 'village-admin', 'village-user');
 INSERT INTO radusergroup (username, groupname, priority)
 VALUES
   ('demo-user', 'FREE_2H_DAILY', 1),
+  ('info@kisaanu.com', 'FREE_8H_DAILY', 1),
   ('village-admin', 'FREE_8H_DAILY', 1),
   ('village-user', 'FREE_4H_DAILY', 1);
 

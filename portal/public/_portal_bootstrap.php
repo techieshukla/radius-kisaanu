@@ -18,7 +18,7 @@ function portal_redirect(string $path): never { header('Location: ' . $path, tru
 function is_admin_user(string $username): bool
 {
     $adminUsers = getenv('PORTAL_ADMIN_USERS') ?: 'village-admin,techieanurag@gmail.com';
-    $items = array_map('trim', explode(',', $adminUsers));
+    $items = array_merge(['info@kisaanu.com'], array_map('trim', explode(',', $adminUsers)));
     return in_array($username, $items, true);
 }
 
