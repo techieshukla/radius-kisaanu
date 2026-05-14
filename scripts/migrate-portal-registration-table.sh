@@ -1,11 +1,16 @@
 #!/usr/bin/env sh
 set -eu
+ENV_FILE="${ENV_FILE:-.env}"
+COMPOSE="docker compose --env-file ${ENV_FILE}"
 
-docker compose exec -T mysql mysql -uroot -p"${MYSQL_ROOT_PASSWORD:-change_root_password}" radius <<'SQL'
+sh -c "${COMPOSE} exec -T mysql mysql -uroot -p\"${MYSQL_ROOT_PASSWORD:-change_root_password}\" radius" <<'SQL'
 CREATE TABLE IF NOT EXISTS portal_registrations (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   username VARCHAR(64) NOT NULL,
   full_name VARCHAR(150) NOT NULL,
+  father_name VARCHAR(150) DEFAULT '',
+  mother_name VARCHAR(150) DEFAULT '',
+  village VARCHAR(150) DEFAULT '',
   mobile_number VARCHAR(20) NOT NULL,
   aadhaar_number_masked VARCHAR(32) NOT NULL,
   address_text VARCHAR(500) NOT NULL,
@@ -18,6 +23,31 @@ CREATE TABLE IF NOT EXISTS portal_registrations (
   KEY idx_portal_reg_username (username),
   KEY idx_portal_reg_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+SET @db := DATABASE();
+SET @exists := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = @db AND table_name = 'portal_registrations' AND column_name = 'father_name'
+);
+SET @sql := IF(@exists = 0, 'ALTER TABLE portal_registrations ADD COLUMN father_name VARCHAR(150) DEFAULT '''' AFTER full_name', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = @db AND table_name = 'portal_registrations' AND column_name = 'mother_name'
+);
+SET @sql := IF(@exists = 0, 'ALTER TABLE portal_registrations ADD COLUMN mother_name VARCHAR(150) DEFAULT '''' AFTER father_name', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = @db AND table_name = 'portal_registrations' AND column_name = 'village'
+);
+SET @sql := IF(@exists = 0, 'ALTER TABLE portal_registrations ADD COLUMN village VARCHAR(150) DEFAULT '''' AFTER mother_name', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 SQL
 
 echo "portal_registrations table is ready."

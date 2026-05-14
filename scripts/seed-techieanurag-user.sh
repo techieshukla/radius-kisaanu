@@ -34,10 +34,30 @@ DB_NAME="${MYSQL_DATABASE:-radius}"
 echo "Seeding user: ${SEED_USERNAME}"
 
 eval "${COMPOSE} exec -T mysql mysql -uroot -p\"${ROOT_PASS}\" \"${DB_NAME}\"" <<SQL
-ALTER TABLE portal_registrations
-  ADD COLUMN IF NOT EXISTS father_name VARCHAR(150) DEFAULT '' AFTER full_name,
-  ADD COLUMN IF NOT EXISTS mother_name VARCHAR(150) DEFAULT '' AFTER father_name,
-  ADD COLUMN IF NOT EXISTS village VARCHAR(150) DEFAULT '' AFTER mother_name;
+SET @db := DATABASE();
+SET @exists := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = @db AND table_name = 'portal_registrations' AND column_name = 'father_name'
+);
+SET @sql := IF(@exists = 0, 'ALTER TABLE portal_registrations ADD COLUMN father_name VARCHAR(150) DEFAULT '''' AFTER full_name', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = @db AND table_name = 'portal_registrations' AND column_name = 'mother_name'
+);
+SET @sql := IF(@exists = 0, 'ALTER TABLE portal_registrations ADD COLUMN mother_name VARCHAR(150) DEFAULT '''' AFTER father_name', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
+
+SET @exists := (
+  SELECT COUNT(*)
+  FROM information_schema.columns
+  WHERE table_schema = @db AND table_name = 'portal_registrations' AND column_name = 'village'
+);
+SET @sql := IF(@exists = 0, 'ALTER TABLE portal_registrations ADD COLUMN village VARCHAR(150) DEFAULT '''' AFTER mother_name', 'SELECT 1');
+PREPARE stmt FROM @sql; EXECUTE stmt; DEALLOCATE PREPARE stmt;
 
 INSERT INTO radcheck (username, attribute, op, value)
 VALUES ('${SEED_USERNAME}', 'Cleartext-Password', ':=', '${SEED_PASSWORD}')
